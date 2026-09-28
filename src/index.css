@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/**
+ * Design tokens from Design-System.md (KMII Ishikawa badge — the only source we have).
+ * Real tokens: kmii-green, ink, on-green. Everything else (surface shades, light-mode
+ * ground) is derived to stay consistent with those, since the source only documents one
+ * (dark) theme. Swap these the moment a fuller brand guideline exists.
+ *
+ * Theme resolution: prefers-color-scheme by default, overridable via a `data-theme`
+ * attribute on <html> that src/hooks/useTheme.ts sets from localStorage.
+ */
+@theme {
+  --color-kmii-green: #1b7717;
+  --color-kmii-green-dark: #14590f;
+  --color-kmii-green-light: #2f9a29;
+  --color-ink: #0c1014;
+  --color-on-green: #ffffff;
+  --color-flag-red-id: #d1172a;
+  --color-flag-red-jp: #bc0c39;
+
+  --font-display: "display-placeholder", system-ui, sans-serif;
+  --radius-full: 9999px;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-elevated: #f4f6f5;
+  --surface: #ffffff;
+  --surface-border: #e2e6e4;
+  --text: var(--color-ink);
+  --text-muted: #4b5563;
+  --primary: var(--color-kmii-green);
+  --primary-hover: var(--color-kmii-green-dark);
+  --on-primary: var(--color-on-green);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: var(--color-ink);
+    --bg-elevated: #171d22;
+    --surface: #12171b;
+    --surface-border: #232b31;
+    --text: #f4f6f5;
+    --text-muted: #9aa5ab;
+    --primary: var(--color-kmii-green-light);
+    --primary-hover: var(--color-kmii-green);
+    --on-primary: var(--color-on-green);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: var(--color-ink);
+  --bg-elevated: #171d22;
+  --surface: #12171b;
+  --surface-border: #232b31;
+  --text: #f4f6f5;
+  --text-muted: #9aa5ab;
+  --primary: var(--color-kmii-green-light);
+  --primary-hover: var(--color-kmii-green);
+  --on-primary: var(--color-on-green);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    @apply rounded-lg shadow-sm p-6 transition-shadow hover:shadow-md;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+    @apply px-6 py-2 rounded-full font-medium transition-colors;
+  }
+  .btn-primary:hover {
+    background: var(--primary-hover);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    @apply px-6 py-2 rounded-full font-medium transition-colors;
+  }
+  .btn-secondary:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .section-title {
+    color: var(--text);
+    @apply text-3xl font-bold mb-6;
+  }
+
+  .text-muted {
+    color: var(--text-muted);
+  }
+
+  .markdown-content h1 {
+    @apply text-3xl font-bold mt-8 mb-4;
+  }
+  .markdown-content h2 {
+    @apply text-2xl font-bold mt-6 mb-3;
+  }
+  .markdown-content h3 {
+    @apply text-xl font-semibold mt-4 mb-2;
+  }
+  .markdown-content p {
+    color: var(--text-muted);
+    @apply mb-4 leading-relaxed;
+  }
+  .markdown-content ul,
+  .markdown-content ol {
+    color: var(--text-muted);
+    @apply mb-4 ml-6 list-disc;
+  }
+  .markdown-content a {
+    color: var(--primary);
+    @apply underline;
+  }
+  .markdown-content blockquote {
+    border-left: 3px solid var(--primary);
+    @apply pl-4 italic my-4;
+    color: var(--text-muted);
+  }
+  .markdown-content img {
+    @apply rounded-lg my-4;
+  }
+  .markdown-content hr {
+    border-color: var(--surface-border);
+    @apply my-6;
+  }
+  .markdown-content table {
+    @apply w-full my-4 border-collapse;
+  }
+  .markdown-content th,
+  .markdown-content td {
+    border: 1px solid var(--surface-border);
+    @apply p-2 text-left;
+  }
+}
