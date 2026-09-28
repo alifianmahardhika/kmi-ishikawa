@@ -45,4 +45,5 @@ export const cacheKeys = {
   stats: (campaignId: string) => `stats:${campaignId}`,
   laporan: (campaignId: string) => `laporan:${campaignId}`,
   kegiatanList: () => "kegiatan:list",
+  settings: () => "settings",
 };

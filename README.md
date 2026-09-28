@@ -52,7 +52,9 @@ netlify/lib/         Kode bersama: db, auth, captcha, validasi, rate limit, bula
 scripts/migrate-db.ts  Migrasi bernomor versi — lihat bagian "Migrasi" di bawah
 src/types/           Tipe data dipakai bersama klien & function
 src/pages/            Halaman publik + src/pages/admin untuk panel admin
-src/config/           contact.ts, rekening.ts, campaign.ts (id campaign default)
+src/config/           contact.ts (statis), campaign.ts (id campaign default)
+                      -- rekening & WhatsApp bendahara TIDAK di sini lagi, lihat
+                      "Pengaturan yang dapat diubah admin" di bawah
 ```
 
 ## Migrasi
@@ -79,6 +81,16 @@ terhitung di `allTimeCollected` (laporan) dan di tabel `expenses` untuk pencatat
 penyaluran. Admin bisa mengubah nominal target lewat form di `/admin` (Dashboard),
 yang memanggil `PATCH /api/admin/campaign`.
 
+## Pengaturan yang dapat diubah admin
+
+Rekening transfer (bank, cabang, jenis, nomor, atas nama) dan WhatsApp bendahara
+**tidak** di-hardcode di kode — keduanya disimpan di tabel `settings` (migrasi v3) dan
+bisa diubah kapan saja lewat `/admin/pengaturan` tanpa perlu redeploy. Halaman publik
+(konfirmasi donasi, Kontak) mengambilnya lewat `GET /api/settings`
+(`src/hooks/useSettings.ts`); admin baca/tulis lewat `GET`/`PATCH /api/admin/settings`.
+Nilai lain di `src/config/contact.ts` (alamat, link grup WhatsApp, Instagram, koordinat
+jadwal sholat) tetap statis di kode — belum diminta jadi bisa-diubah-admin juga.
+
 ## Cache
 
 `/api/stats`, `/api/laporan`, dan `/api/kegiatan` (list) di-cache in-memory di dalam
@@ -103,12 +115,12 @@ Checklist sebelum deploy pertama kali:
 
 ### 1. Isi konfigurasi yang masih placeholder
 
-Semua tempat ini punya `TODO` — cari dengan `grep -rn "TODO" src/config`:
+Rekening & WhatsApp bendahara **tidak** perlu diisi sebelum deploy — isi lewat
+`/admin/pengaturan` setelah deploy pertama sukses (lihat langkah 6). Yang masih perlu
+dicek manual di kode sebelum deploy:
 
-- `src/config/rekening.ts` — nama bank, cabang, nomor rekening, atas nama
-- `src/config/contact.ts` — nomor WhatsApp bendahara (`whatsappTreasurer.phone`, format
-  E.164 tanpa `+`, mis. `818012345678`), link grup WhatsApp, handle Instagram,
-  `mapsEmbedUrl`
+- `src/config/contact.ts` — `mapsEmbedUrl` (masih kosong, isi begitu alamat
+  musala/titik kumpul final)
 - Logo/badge asli (lihat `Design-System.md`) — belum ada file gambarnya, situs masih
   pakai placeholder huruf "K" di navbar
 
@@ -156,6 +168,8 @@ Build command dan publish directory sudah otomatis kebaca dari `netlify.toml`
 - [ ] Cek `/donasi` → submit donasi tes → kode konfirmasi muncul
 - [ ] Login `/admin/login` dengan password dari langkah 3 → verifikasi donasi tes tadi
   → cek `/donasi` progress bertambah
+- [ ] Isi rekening asli & nomor WhatsApp bendahara di `/admin/pengaturan` — sebelum ini
+  diisi, halaman konfirmasi donasi & Kontak menampilkan field kosong
 - [ ] **Unset `RUN_MIGRATIONS`** di Netlify env vars (supaya deploy berikutnya tidak
   query Turso untuk migrasi yang percuma)
 - [ ] Hapus donasi/campaign data tes lewat `turso db shell kmii-ishikawa` kalau perlu

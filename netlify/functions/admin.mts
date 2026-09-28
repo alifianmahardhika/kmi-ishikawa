@@ -13,7 +13,9 @@ import { cacheDelete, cacheKeys } from "../lib/cache";
 import type { Campaign, Donation, DonationStatus } from "../../src/types/donation";
 import type { EventItem } from "../../src/types/event";
 import type { Expense } from "../../src/types/expense";
+import type { RekeningInfo, WhatsappTreasurer } from "../../src/types/settings";
 import { DEFAULT_CAMPAIGN_ID } from "../../src/config/campaign";
+import { readSettings } from "../lib/settings";
 
 // Every /api/admin/* request lands here (Netlify routes any path under
 // /.netlify/functions/admin/* to this one function) — we parse the remainder of the
@@ -38,6 +40,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (resource === "kegiatan") return await handleKegiatan(req, id);
     if (resource === "laporan") return await handleLaporan(req, id);
     if (resource === "campaign") return await handleCampaign(req);
+    if (resource === "settings") return await handleSettings(req);
 
     return notFound();
   } catch (err) {
@@ -334,6 +337,61 @@ async function handleCampaign(req: Request): Promise<Response> {
       });
       if (result.rowsAffected === 0) return notFound("campaign_not_found");
       cacheDelete(cacheKeys.stats(campaignId));
+      return json({ ok: true });
+    } catch (err) {
+      return badRequest(err instanceof Error ? err.message : "invalid_input");
+    }
+  }
+
+  return methodNotAllowed();
+}
+
+// Rekening (bank transfer details) + WhatsApp bendahara — editable here so they never
+// need a redeploy to change. GET returns the current values (for prefilling the admin
+// form); PATCH accepts either/both of `rekening` and `whatsappTreasurer` (partial —
+// omitted fields keep their current value) and writes each as a JSON blob into the
+// `settings` table.
+async function handleSettings(req: Request): Promise<Response> {
+  const db = getDb();
+
+  if (req.method === "GET") {
+    return json(await readSettings(db));
+  }
+
+  if (req.method === "PATCH") {
+    const body = await req.json().catch(() => ({}));
+    try {
+      const current = await readSettings(db);
+      const now = new Date().toISOString();
+
+      if (body.rekening) {
+        const r = body.rekening;
+        const rekening: RekeningInfo = {
+          bankName: requireString(r.bankName ?? current.rekening.bankName, "bankName", { max: 200 }),
+          branchNumber: optionalString(r.branchNumber ?? current.rekening.branchNumber, "branchNumber", 100),
+          accountType: optionalString(r.accountType ?? current.rekening.accountType, "accountType", 100),
+          accountNumber: requireString(r.accountNumber ?? current.rekening.accountNumber, "accountNumber", { max: 100 }),
+          accountHolder: requireString(r.accountHolder ?? current.rekening.accountHolder, "accountHolder", { max: 200 }),
+        };
+        await db.execute({
+          sql: "UPDATE settings SET value = ?, updated_at = ? WHERE key = 'rekening'",
+          args: [JSON.stringify(rekening), now],
+        });
+      }
+
+      if (body.whatsappTreasurer) {
+        const w = body.whatsappTreasurer;
+        const whatsappTreasurer: WhatsappTreasurer = {
+          name: requireString(w.name ?? current.whatsappTreasurer.name, "name", { max: 100 }),
+          phone: requireString(w.phone ?? current.whatsappTreasurer.phone, "phone", { max: 20 }),
+        };
+        await db.execute({
+          sql: "UPDATE settings SET value = ?, updated_at = ? WHERE key = 'whatsapp_treasurer'",
+          args: [JSON.stringify(whatsappTreasurer), now],
+        });
+      }
+
+      cacheDelete(cacheKeys.settings());
       return json({ ok: true });
     } catch (err) {
       return badRequest(err instanceof Error ? err.message : "invalid_input");

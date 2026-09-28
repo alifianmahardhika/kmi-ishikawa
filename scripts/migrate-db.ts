@@ -47,10 +47,12 @@ function getClient() {
   return createClient({ url, authToken });
 }
 
+type MigrationStatement = string | { sql: string; args: (string | number | null)[] };
+
 interface Migration {
   version: number;
   name: string;
-  sql: string[];
+  sql: MigrationStatement[];
 }
 
 const MIGRATIONS: Migration[] = [
@@ -122,11 +124,42 @@ const MIGRATIONS: Migration[] = [
        )`,
     ],
   },
+  {
+    version: 3,
+    name: "settings table (rekening & kontak bendahara, dapat diubah admin)",
+    sql: [
+      `CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      {
+        sql: "INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES ('rekening', ?, ?)",
+        args: [
+          JSON.stringify({
+            bankName: "Japan Post Bank (Yucho Ginko)",
+            branchNumber: "",
+            accountType: "Tabungan (普通)",
+            accountNumber: "",
+            accountHolder: "",
+          }),
+          new Date().toISOString(),
+        ],
+      },
+      {
+        sql: "INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES ('whatsapp_treasurer', ?, ?)",
+        args: [
+          JSON.stringify({ name: "Bendahara KMII", phone: "" }),
+          new Date().toISOString(),
+        ],
+      },
+    ],
+  },
   // Tambahkan migrasi baru di sini — jangan pernah mengedit/menghapus entri yang sudah ada.
   //
   // Contoh:
   // {
-  //   version: 3,
+  //   version: 4,
   //   name: "tambah kolom X ke Y",
   //   sql: ["ALTER TABLE y ADD COLUMN x TEXT NOT NULL DEFAULT ''"],
   // },

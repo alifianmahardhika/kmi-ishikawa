@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { CONTACT, whatsappLink } from "../../config/contact";
-import { REKENING } from "../../config/rekening";
+import { whatsappLink } from "../../config/contact";
+import { useSettings } from "../../hooks/useSettings";
 
 export function KodeKonfirmasi({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
+  const settings = useSettings();
 
   async function copyCode() {
     try {
@@ -33,23 +34,29 @@ export function KodeKonfirmasi({ code }: { code: string }) {
         </button>
       </div>
 
-      <div className="card text-left mb-6 space-y-1">
-        <p className="font-semibold text-(--text) mb-2">Detail Rekening</p>
-        <p className="text-muted">Bank: {REKENING.bankName}</p>
-        <p className="text-muted">Cabang: {REKENING.branchNumber}</p>
-        <p className="text-muted">Jenis: {REKENING.accountType}</p>
-        <p className="text-muted">No. Rekening: {REKENING.accountNumber}</p>
-        <p className="text-muted">Atas nama: {REKENING.accountHolder}</p>
-      </div>
+      {settings ? (
+        <>
+          <div className="card text-left mb-6 space-y-1">
+            <p className="font-semibold text-(--text) mb-2">Detail Rekening</p>
+            <p className="text-muted">Bank: {settings.rekening.bankName}</p>
+            {settings.rekening.branchNumber && <p className="text-muted">Cabang: {settings.rekening.branchNumber}</p>}
+            {settings.rekening.accountType && <p className="text-muted">Jenis: {settings.rekening.accountType}</p>}
+            <p className="text-muted">No. Rekening: {settings.rekening.accountNumber}</p>
+            <p className="text-muted">Atas nama: {settings.rekening.accountHolder}</p>
+          </div>
 
-      <a
-        href={whatsappLink(CONTACT.whatsappTreasurer.phone, waMessage)}
-        target="_blank"
-        rel="noreferrer"
-        className="btn-primary w-full inline-block"
-      >
-        Kirim Bukti Transfer via WhatsApp
-      </a>
+          <a
+            href={whatsappLink(settings.whatsappTreasurer.phone, waMessage)}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary w-full inline-block"
+          >
+            Kirim Bukti Transfer via WhatsApp
+          </a>
+        </>
+      ) : (
+        <p className="text-sm text-muted">Memuat detail rekening...</p>
+      )}
     </div>
   );
 }

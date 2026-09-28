@@ -6,6 +6,7 @@ const LINKS = [
   { to: "/admin/donasi", label: "Donasi" },
   { to: "/admin/kegiatan", label: "Kegiatan" },
   { to: "/admin/laporan", label: "Laporan" },
+  { to: "/admin/pengaturan", label: "Pengaturan" },
 ];
 
 export function AdminNav() {

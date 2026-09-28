@@ -13,6 +13,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import DonasiAdmin from "./pages/admin/DonasiAdmin";
 import KegiatanAdmin from "./pages/admin/KegiatanAdmin";
 import LaporanAdmin from "./pages/admin/LaporanAdmin";
+import Pengaturan from "./pages/admin/Pengaturan";
 
 const router = createBrowserRouter([
   {
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
       { path: "donasi", element: <DonasiAdmin /> },
       { path: "kegiatan", element: <KegiatanAdmin /> },
       { path: "laporan", element: <LaporanAdmin /> },
+      { path: "pengaturan", element: <Pengaturan /> },
     ],
   },
 ]);

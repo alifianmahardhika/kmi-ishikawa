@@ -59,6 +59,13 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   diwarisi dari pola aslinya: cache ini per-instance function, tidak dibagi antar instance
   Netlify yang berjalan bersamaan (module scope per proses) — cukup untuk situs komunitas
   trafik rendah ini, bukan untuk consistency yang ketat.
+- **Rekening & WhatsApp bendahara disimpan di DB** (tabel `settings`, migrasi v3;
+  `netlify/lib/settings.ts` punya helper `readSettings()` bersama untuk public
+  `settings.mts` dan admin `handleSettings`), **bukan** di `src/config/` — sengaja diminta
+  pemilik proyek supaya bisa diubah dari `/admin/pengaturan` tanpa redeploy. Jangan
+  hardcode nomor rekening/WA lagi di `src/config/contact.ts`; kalau perlu field baru yang
+  serupa (mis. rekening kedua), tambahkan sebagai row baru di tabel `settings`, bukan
+  balik ke config statis.
 - **JANGAN hapus/reset `local.db`** untuk keperluan testing (`rm -f local.db*` dkk.) —
   pemilik proyek isi data uji coba sendiri di situ dan migrasi ulang manual kapan perlu
   (`bun run migrate`). Kalau butuh DB kosong untuk verifikasi suatu fitur, jangan sentuh
