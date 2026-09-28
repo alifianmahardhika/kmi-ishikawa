@@ -1,17 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, buildQuery } from "../lib/api";
+import type { Paginated } from "../types/api";
 import type { EventItem } from "../types/event";
 import { formatDateTimeId } from "../lib/format";
 import { useSEO } from "../hooks/useSEO";
+import { Pagination } from "../components/Pagination";
 
 export default function Kegiatan() {
   useSEO("Kegiatan", "Jadwal kegiatan komunitas KMII Ishikawa.");
-  const [events, setEvents] = useState<EventItem[] | null>(null);
+  const [result, setResult] = useState<Paginated<EventItem> | null>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
-    api.get<EventItem[]>("/api/kegiatan").then(setEvents).catch(() => setEvents([]));
-  }, []);
+    api
+      .get<Paginated<EventItem>>(`/api/kegiatan${buildQuery({ page })}`)
+      .then(setResult)
+      .catch(() => setResult({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 1 }));
+  }, [page]);
+
+  const events = result?.items ?? null;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
@@ -27,6 +35,7 @@ export default function Kegiatan() {
           </Link>
         ))}
       </div>
+      {result && <Pagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
     </div>
   );
 }

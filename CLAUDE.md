@@ -66,6 +66,17 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   hardcode nomor rekening/WA lagi di `src/config/contact.ts`; kalau perlu field baru yang
   serupa (mis. rekening kedua), tambahkan sebagai row baru di tabel `settings`, bukan
   balik ke config statis.
+- **Paginasi**: `/api/admin/donasi`, `/api/admin/laporan`, `/api/admin/kegiatan`, dan
+  `/api/kegiatan` (publik) semua pakai `parsePageParams`/`paginatedResponse`
+  (`netlify/lib/pagination.ts`) dan balikkan `{items, total, page, pageSize, totalPages}`
+  (`Paginated<T>` di `src/types/api.ts`), bukan array polos. Kalau nambah endpoint list
+  baru yang berpotensi panjang, ikuti pola yang sama alih-alih `SELECT *` tanpa
+  `LIMIT`/`OFFSET`. Filter tanggal pakai `endOfDayIfDateOnly()` untuk batas atas (`to`) —
+  timestamp disimpan ISO string dan dibandingkan leksikografis, jadi `to` yang cuma
+  tanggal (`YYYY-MM-DD`) harus di-pad ke akhir hari atau data di hari itu ke-exclude.
+  `spent_on` di tabel `expenses` beda — itu sudah date-only, jangan di-pad.
+  Cache publik `/api/kegiatan` (`kegiatan.mts`) HANYA berlaku untuk page 1 tanpa filter —
+  request berparameter lain selalu bypass cache (lihat komentar di file itu kenapa).
 - **JANGAN hapus/reset `local.db`** untuk keperluan testing (`rm -f local.db*` dkk.) —
   pemilik proyek isi data uji coba sendiri di situ dan migrasi ulang manual kapan perlu
   (`bun run migrate`). Kalau butuh DB kosong untuk verifikasi suatu fitur, jangan sentuh

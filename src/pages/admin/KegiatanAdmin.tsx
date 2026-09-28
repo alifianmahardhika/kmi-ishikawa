@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AdminNav } from "../../components/admin/AdminNav";
 import { Field } from "../../components/admin/Field";
-import { api } from "../../lib/api";
+import { DateRangeFilter } from "../../components/admin/DateRangeFilter";
+import { Pagination } from "../../components/Pagination";
+import { api, buildQuery } from "../../lib/api";
+import type { Paginated } from "../../types/api";
 import type { EventCreateInput, EventItem } from "../../types/event";
 import { formatDateTimeId } from "../../lib/format";
 import { useSEO } from "../../hooks/useSEO";
@@ -19,15 +22,28 @@ const EMPTY: EventCreateInput = {
 
 export default function KegiatanAdmin() {
   useSEO("Admin - Kegiatan");
-  const [events, setEvents] = useState<EventItem[]>([]);
+  const [result, setResult] = useState<Paginated<EventItem> | null>(null);
   const [form, setForm] = useState<EventCreateInput>(EMPTY);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
 
   function load() {
-    api.get<EventItem[]>("/api/admin/kegiatan").then(setEvents).catch(() => {});
+    const query = buildQuery({ from, to, page });
+    api.get<Paginated<EventItem>>(`/api/admin/kegiatan${query}`).then(setResult).catch(() => {});
   }
-  useEffect(load, []);
+  useEffect(load, [from, to, page]);
+
+  function updateFrom(value: string) {
+    setFrom(value);
+    setPage(1);
+  }
+  function updateTo(value: string) {
+    setTo(value);
+    setPage(1);
+  }
 
   function edit(event: EventItem) {
     setEditingId(event.id);
@@ -117,26 +133,34 @@ export default function KegiatanAdmin() {
           </div>
         </form>
 
-        <div className="space-y-3">
-          {events.map((event) => (
-            <div key={event.id} className="card !py-3">
-              <div className="flex justify-between items-start gap-2">
-                <div>
-                  <p className="font-semibold text-(--text)">{event.title}</p>
-                  <p className="text-xs text-muted">{formatDateTimeId(event.startsAt)}</p>
-                  <p className="text-xs text-muted">{event.isPublished ? "Terbit" : "Draf"}</p>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button type="button" onClick={() => edit(event)} className="text-sm text-(--primary)">
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => remove(event.id)} className="text-sm" style={{ color: "var(--color-flag-red-id)" }}>
-                    Hapus
-                  </button>
+        <div>
+          <div className="mb-3">
+            <DateRangeFilter from={from} to={to} onFromChange={updateFrom} onToChange={updateTo} />
+          </div>
+          {result && <p className="text-xs text-muted mb-2">{result.total} kegiatan ditemukan</p>}
+          <div className="space-y-3">
+            {(result?.items ?? []).length === 0 && <p className="text-muted text-sm">Tidak ada kegiatan.</p>}
+            {result?.items.map((event) => (
+              <div key={event.id} className="card !py-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <p className="font-semibold text-(--text)">{event.title}</p>
+                    <p className="text-xs text-muted">{formatDateTimeId(event.startsAt)}</p>
+                    <p className="text-xs text-muted">{event.isPublished ? "Terbit" : "Draf"}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button type="button" onClick={() => edit(event)} className="text-sm text-(--primary)">
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => remove(event.id)} className="text-sm" style={{ color: "var(--color-flag-red-id)" }}>
+                      Hapus
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {result && <Pagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
         </div>
       </div>
     </div>

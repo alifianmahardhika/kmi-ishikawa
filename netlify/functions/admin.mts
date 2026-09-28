@@ -10,6 +10,7 @@ import {
 } from "../lib/respond";
 import { optionalString, requireBoolean, requireInt, requireString } from "../lib/validate";
 import { cacheDelete, cacheKeys } from "../lib/cache";
+import { endOfDayIfDateOnly, parsePageParams, paginatedResponse } from "../lib/pagination";
 import type { Campaign, Donation, DonationStatus } from "../../src/types/donation";
 import type { EventItem } from "../../src/types/event";
 import type { Expense } from "../../src/types/expense";
@@ -90,8 +91,37 @@ async function handleDonasi(req: Request, id?: string): Promise<Response> {
 
   if (!id) {
     if (req.method !== "GET") return methodNotAllowed();
-    const result = await db.execute("SELECT * FROM donations ORDER BY created_at DESC");
-    return json(result.rows.map((r) => toDonation(r as Record<string, unknown>)));
+    const url = new URL(req.url);
+    const status = url.searchParams.get("status");
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    const { page, pageSize, offset } = parsePageParams(url);
+
+    const conditions: string[] = [];
+    const args: (string | number)[] = [];
+    if (status === "pending" || status === "verified" || status === "rejected") {
+      conditions.push("status = ?");
+      args.push(status);
+    }
+    if (from) {
+      conditions.push("created_at >= ?");
+      args.push(from);
+    }
+    if (to) {
+      conditions.push("created_at <= ?");
+      args.push(endOfDayIfDateOnly(to));
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const countResult = await db.execute({ sql: `SELECT COUNT(*) as n FROM donations ${where}`, args });
+    const total = Number(countResult.rows[0]?.n ?? 0);
+
+    const result = await db.execute({
+      sql: `SELECT * FROM donations ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      args: [...args, pageSize, offset],
+    });
+    const items = result.rows.map((r) => toDonation(r as Record<string, unknown>));
+    return json(paginatedResponse(items, total, page, pageSize));
   }
 
   if (req.method !== "PATCH") return methodNotAllowed();
@@ -148,8 +178,32 @@ async function handleKegiatan(req: Request, id?: string): Promise<Response> {
 
   if (!id) {
     if (req.method === "GET") {
-      const result = await db.execute("SELECT * FROM events ORDER BY starts_at DESC");
-      return json(result.rows.map((r) => toEventItem(r as Record<string, unknown>)));
+      const url = new URL(req.url);
+      const from = url.searchParams.get("from");
+      const to = url.searchParams.get("to");
+      const { page, pageSize, offset } = parsePageParams(url);
+
+      const conditions: string[] = [];
+      const args: (string | number)[] = [];
+      if (from) {
+        conditions.push("starts_at >= ?");
+        args.push(from);
+      }
+      if (to) {
+        conditions.push("starts_at <= ?");
+        args.push(endOfDayIfDateOnly(to));
+      }
+      const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+      const countResult = await db.execute({ sql: `SELECT COUNT(*) as n FROM events ${where}`, args });
+      const total = Number(countResult.rows[0]?.n ?? 0);
+
+      const result = await db.execute({
+        sql: `SELECT * FROM events ${where} ORDER BY starts_at DESC LIMIT ? OFFSET ?`,
+        args: [...args, pageSize, offset],
+      });
+      const items = result.rows.map((r) => toEventItem(r as Record<string, unknown>));
+      return json(paginatedResponse(items, total, page, pageSize));
     }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));
@@ -242,13 +296,37 @@ async function handleLaporan(req: Request, id?: string): Promise<Response> {
     if (req.method === "GET") {
       const url = new URL(req.url);
       const campaignId = url.searchParams.get("campaign");
-      const result = campaignId
-        ? await db.execute({
-            sql: "SELECT * FROM expenses WHERE campaign_id = ? ORDER BY spent_on DESC, id DESC",
-            args: [campaignId],
-          })
-        : await db.execute("SELECT * FROM expenses ORDER BY spent_on DESC, id DESC");
-      return json(result.rows.map((r) => toExpense(r as Record<string, unknown>)));
+      const from = url.searchParams.get("from");
+      const to = url.searchParams.get("to");
+      const { page, pageSize, offset } = parsePageParams(url);
+
+      const conditions: string[] = [];
+      const args: (string | number)[] = [];
+      if (campaignId) {
+        conditions.push("campaign_id = ?");
+        args.push(campaignId);
+      }
+      // spent_on is stored as a plain YYYY-MM-DD date, so it never needs the
+      // end-of-day padding that timestamp columns (created_at, starts_at) need.
+      if (from) {
+        conditions.push("spent_on >= ?");
+        args.push(from);
+      }
+      if (to) {
+        conditions.push("spent_on <= ?");
+        args.push(to);
+      }
+      const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+      const countResult = await db.execute({ sql: `SELECT COUNT(*) as n FROM expenses ${where}`, args });
+      const total = Number(countResult.rows[0]?.n ?? 0);
+
+      const result = await db.execute({
+        sql: `SELECT * FROM expenses ${where} ORDER BY spent_on DESC, id DESC LIMIT ? OFFSET ?`,
+        args: [...args, pageSize, offset],
+      });
+      const items = result.rows.map((r) => toExpense(r as Record<string, unknown>));
+      return json(paginatedResponse(items, total, page, pageSize));
     }
     if (req.method === "POST") {
       const body = await req.json().catch(() => ({}));

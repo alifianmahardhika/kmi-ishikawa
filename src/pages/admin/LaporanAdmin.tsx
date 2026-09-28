@@ -1,12 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AdminNav } from "../../components/admin/AdminNav";
 import { Field } from "../../components/admin/Field";
-import { api } from "../../lib/api";
+import { DateRangeFilter } from "../../components/admin/DateRangeFilter";
+import { Pagination } from "../../components/Pagination";
+import { api, buildQuery } from "../../lib/api";
+import type { Paginated } from "../../types/api";
 import type { Expense, ExpenseCreateInput } from "../../types/expense";
 import { formatYen, formatDateId } from "../../lib/format";
 import { useSEO } from "../../hooks/useSEO";
-
 import { DEFAULT_CAMPAIGN_ID as CAMPAIGN_ID } from "../../config/campaign";
+
 const EMPTY: ExpenseCreateInput = {
   campaignId: CAMPAIGN_ID,
   title: "",
@@ -18,14 +21,27 @@ const EMPTY: ExpenseCreateInput = {
 
 export default function LaporanAdmin() {
   useSEO("Admin - Laporan");
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [result, setResult] = useState<Paginated<Expense> | null>(null);
   const [form, setForm] = useState<ExpenseCreateInput>(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
 
   function load() {
-    api.get<Expense[]>(`/api/admin/laporan?campaign=${CAMPAIGN_ID}`).then(setExpenses).catch(() => {});
+    const query = buildQuery({ campaign: CAMPAIGN_ID, from, to, page });
+    api.get<Paginated<Expense>>(`/api/admin/laporan${query}`).then(setResult).catch(() => {});
   }
-  useEffect(load, []);
+  useEffect(load, [from, to, page]);
+
+  function updateFrom(value: string) {
+    setFrom(value);
+    setPage(1);
+  }
+  function updateTo(value: string) {
+    setTo(value);
+    setPage(1);
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -47,6 +63,7 @@ export default function LaporanAdmin() {
 
   const inputClass = "w-full rounded-lg border px-3 py-2";
   const inputStyle = { borderColor: "var(--surface-border)", background: "var(--bg)" };
+  const expenses = result?.items ?? [];
 
   return (
     <div>
@@ -74,21 +91,29 @@ export default function LaporanAdmin() {
           </button>
         </form>
 
-        <div className="space-y-2">
-          {expenses.map((exp) => (
-            <div key={exp.id} className="card !py-3 flex justify-between items-center">
-              <div>
-                <p className="font-medium text-(--text)">{exp.title}</p>
-                <p className="text-xs text-muted">{formatDateId(exp.spentOn)} · {exp.category}</p>
+        <div>
+          <div className="mb-3">
+            <DateRangeFilter from={from} to={to} onFromChange={updateFrom} onToChange={updateTo} />
+          </div>
+          {result && <p className="text-xs text-muted mb-2">{result.total} pengeluaran ditemukan</p>}
+          <div className="space-y-2">
+            {expenses.length === 0 && <p className="text-muted text-sm">Tidak ada pengeluaran.</p>}
+            {expenses.map((exp) => (
+              <div key={exp.id} className="card !py-3 flex justify-between items-center">
+                <div>
+                  <p className="font-medium text-(--text)">{exp.title}</p>
+                  <p className="text-xs text-muted">{formatDateId(exp.spentOn)} · {exp.category}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="font-semibold text-(--text)">{formatYen(exp.amount)}</p>
+                  <button type="button" onClick={() => remove(exp.id)} className="text-sm" style={{ color: "var(--color-flag-red-id)" }}>
+                    Hapus
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <p className="font-semibold text-(--text)">{formatYen(exp.amount)}</p>
-                <button type="button" onClick={() => remove(exp.id)} className="text-sm" style={{ color: "var(--color-flag-red-id)" }}>
-                  Hapus
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {result && <Pagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
         </div>
       </div>
     </div>

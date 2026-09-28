@@ -199,10 +199,14 @@ Warna & wordmark mengikuti `Design-System.md` (badge KMII) — `kmii-green #1b77
 sumber hanya mendokumentasikan satu tema (gelap). Ganti token di `src/index.css`
 begitu ada panduan brand yang lebih lengkap.
 
-## Belum dikerjakan (backlog)
+## Paginasi & filter tanggal
 
-- **Paginasi & filter tanggal** untuk list yang berpotensi panjang seiring waktu:
-  `/admin/donasi` (semua donasi, tanpa batas), `/admin/laporan` (semua pengeluaran),
-  `/kegiatan` & `/admin/kegiatan` (semua event). Saat ini semua query `SELECT *` tanpa
-  `LIMIT`/`OFFSET` — baik-baik saja di awal, tapi query & payload akan makin besar tiap
-  bulan berjalan.
+`/admin/donasi`, `/admin/laporan`, `/admin/kegiatan`, dan `/kegiatan` (publik) memakai
+paginasi berbasis `page`/`pageSize` (`netlify/lib/pagination.ts`), bukan `SELECT *` tanpa
+batas — respons berbentuk `{ items, total, page, pageSize, totalPages }`
+(`src/types/api.ts`'s `Paginated<T>`). Filter tanggal (`from`/`to`, format `YYYY-MM-DD`)
+tersedia di keempatnya lewat `src/components/admin/DateRangeFilter.tsx`; donasi juga
+punya filter status. Komponen `src/components/Pagination.tsx` dipakai bersama di semua
+halaman ini. Cache publik `/kegiatan` (lihat bagian "Cache" di atas) hanya berlaku untuk
+tampilan default (halaman 1, tanpa filter) — request berhalaman/terfilter selalu query
+langsung ke DB.
