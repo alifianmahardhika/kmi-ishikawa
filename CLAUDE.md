@@ -45,6 +45,11 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   sebelum terhitung publik, captcha di sini hanya penyaring spam ringan (bukan gerbang
   keamanan), jadi tidak perlu token bertanda tangan server seperti sebelumnya. Jangan
   tambahkan lagi endpoint `/api/captcha` kecuali diminta ulang.
+- **JANGAN hapus/reset `local.db`** untuk keperluan testing (`rm -f local.db*` dkk.) —
+  pemilik proyek isi data uji coba sendiri di situ dan migrasi ulang manual kapan perlu
+  (`bun run migrate`). Kalau butuh DB kosong untuk verifikasi suatu fitur, jangan sentuh
+  `local.db` yang ada — pakai `:memory:` (`file::memory:`), file sementara di scratchpad,
+  atau panggil handler function langsung dengan client libSQL sendiri yang dibuat di situ.
 
 ## Perintah
 
