@@ -17,7 +17,7 @@ const EMPTY: EventCreateInput = {
 };
 
 export default function KegiatanAdmin() {
-  useSEO("Admin — Kegiatan");
+  useSEO("Admin - Kegiatan");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [form, setForm] = useState<EventCreateInput>(EMPTY);
   const [editingId, setEditingId] = useState<number | null>(null);

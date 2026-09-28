@@ -12,7 +12,7 @@ const STATUS_LABEL: Record<DonationStatus, string> = {
 };
 
 export default function DonasiAdmin() {
-  useSEO("Admin — Donasi");
+  useSEO("Admin - Donasi");
   const [donations, setDonations] = useState<Donation[]>([]);
   const [filter, setFilter] = useState<DonationStatus | "all">("pending");
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -61,7 +61,7 @@ export default function DonasiAdmin() {
               <div className="flex flex-wrap justify-between gap-2 mb-2">
                 <div>
                   <p className="font-semibold text-(--text)">
-                    {d.donorName} — {formatYen(d.amount)}
+                    {d.donorName} · {formatYen(d.amount)}
                   </p>
                   <p className="text-xs text-muted">
                     Kode <span className="font-mono">{d.code}</span> · {formatDateTimeId(d.createdAt)}

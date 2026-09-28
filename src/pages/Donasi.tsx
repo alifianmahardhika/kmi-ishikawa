@@ -9,7 +9,7 @@ import { DEFAULT_CAMPAIGN_ID as CAMPAIGN_ID } from "../config/campaign";
 import { formatMonthId } from "../lib/format";
 
 export default function Donasi() {
-  useSEO("Donasi", "Donasi nafkah bulanan Imam KMII Ishikawa.");
+  useSEO("Donasi", "Donasi bulanan untuk Imam KMII Ishikawa.");
   const navigate = useNavigate();
   const [stats, setStats] = useState<DonationStats | null>(null);
 
@@ -22,10 +22,10 @@ export default function Donasi() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-12">
-      <h1 className="section-title">Nafkah Bulanan Imam</h1>
+      <h1 className="section-title">Donasi Bulanan</h1>
       <p className="text-muted mb-6">
-        Donasi Anda membantu mendukung nafkah bulanan Imam KMII Ishikawa. Setiap transfer
-        diverifikasi manual oleh bendahara — Anda akan mendapat kode konfirmasi untuk
+        Donasi Anda membantu mendukung Imam KMII Ishikawa setiap bulan. Setiap transfer
+        diverifikasi manual oleh bendahara, dan Anda akan mendapat kode konfirmasi untuk
         dilampirkan saat mengirim bukti transfer.
       </p>
 

@@ -3,7 +3,7 @@ import { CONTACT } from "../config/contact";
 
 export function useSEO(title: string, description?: string) {
   useEffect(() => {
-    document.title = `${title} — ${CONTACT.orgName}`;
+    document.title = `${title} - ${CONTACT.orgName}`;
     if (description) {
       let meta = document.querySelector('meta[name="description"]');
       if (!meta) {

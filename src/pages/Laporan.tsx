@@ -7,7 +7,7 @@ import { useSEO } from "../hooks/useSEO";
 import { DEFAULT_CAMPAIGN_ID as CAMPAIGN_ID } from "../config/campaign";
 
 export default function Laporan() {
-  useSEO("Laporan Keuangan", "Transparansi donasi dan nafkah bulanan Imam KMII Ishikawa.");
+  useSEO("Laporan Keuangan", "Transparansi donasi bulanan KMII Ishikawa.");
   const [summary, setSummary] = useState<LaporanSummary | null>(null);
   const [stats, setStats] = useState<DonationStats | null>(null);
 
@@ -20,7 +20,7 @@ export default function Laporan() {
     <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="section-title">Laporan Keuangan</h1>
       <p className="text-muted mb-8">
-        Ringkasan donasi yang terverifikasi dan penyaluran dana untuk nafkah bulanan Imam.
+        Ringkasan donasi yang terverifikasi dan penyaluran dana untuk mendukung Imam.
         Total di bawah ini akumulasi sepanjang waktu; progress bulan berjalan ada di
         halaman <a href="/donasi" className="text-(--primary) underline">Donasi</a>.
       </p>

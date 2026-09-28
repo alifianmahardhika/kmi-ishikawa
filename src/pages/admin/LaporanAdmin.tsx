@@ -16,7 +16,7 @@ const EMPTY: ExpenseCreateInput = {
 };
 
 export default function LaporanAdmin() {
-  useSEO("Admin — Laporan");
+  useSEO("Admin - Laporan");
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [form, setForm] = useState<ExpenseCreateInput>(EMPTY);
   const [saving, setSaving] = useState(false);

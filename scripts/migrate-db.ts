@@ -114,8 +114,8 @@ const MIGRATIONS: Migration[] = [
       `INSERT OR IGNORE INTO campaigns (id, title, description, target_amount, is_active, created_at)
        VALUES (
          'nafkah-imam',
-         'Nafkah Bulanan Imam KMII Ishikawa',
-         'Donasi rutin bulanan untuk mendukung nafkah Imam KMII Ishikawa. Target dan progress direset setiap bulan.',
+         'Donasi Bulanan Imam KMII Ishikawa',
+         'Donasi rutin bulanan untuk mendukung Imam KMII Ishikawa. Target dan progress direset setiap bulan.',
          150000,
          1,
          '${new Date().toISOString()}'

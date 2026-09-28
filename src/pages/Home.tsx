@@ -6,7 +6,7 @@ import { useSEO } from "../hooks/useSEO";
 export default function Home() {
   useSEO(
     "Beranda",
-    `Komunitas Muslim Indonesia di Ishikawa — kegiatan, jadwal sholat, dan program donasi.`,
+    `Komunitas Muslim Indonesia di Ishikawa. Kegiatan, jadwal sholat, dan program donasi.`,
   );
 
   return (
@@ -38,8 +38,8 @@ export default function Home() {
         <p className="text-muted leading-relaxed">
           {CONTACT.orgName} ({CONTACT.orgFullName}) adalah wadah silaturahmi dan kegiatan
           keagamaan bagi Muslim Indonesia yang tinggal di Ishikawa, Jepang. Kami mengadakan
-          kajian rutin, sholat berjamaah, dan berbagai kegiatan komunitas — sekaligus
-          menggalang donasi rutin bulanan untuk mendukung nafkah Imam kami.
+          kajian rutin, sholat berjamaah, dan berbagai kegiatan komunitas, sekaligus
+          menggalang donasi bulanan untuk mendukung nafkah Imam kami.
         </p>
       </section>
     </div>
