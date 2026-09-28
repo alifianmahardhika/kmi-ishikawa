@@ -1,10 +1,8 @@
-import { CONTACT, whatsappLink } from "../config/contact";
-import { useSettings } from "../hooks/useSettings";
+import { CONTACT } from "../config/contact";
 import { useSEO } from "../hooks/useSEO";
 
 export default function Kontak() {
   useSEO("Kontak", "Hubungi KMII Ishikawa lewat WhatsApp atau Instagram.");
-  const settings = useSettings();
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
@@ -25,21 +23,6 @@ export default function Kontak() {
           <a href={CONTACT.instagram} target="_blank" rel="noreferrer" className="text-(--primary) underline">
             {CONTACT.instagram}
           </a>
-        </div>
-        <div>
-          <p className="font-semibold text-(--text)">Bendahara</p>
-          {settings ? (
-            <a
-              href={whatsappLink(settings.whatsappTreasurer.phone, "Assalamu'alaikum, saya ingin bertanya tentang KMII Ishikawa.")}
-              target="_blank"
-              rel="noreferrer"
-              className="text-(--primary) underline"
-            >
-              Chat via WhatsApp
-            </a>
-          ) : (
-            <p className="text-muted text-sm">Memuat...</p>
-          )}
         </div>
       </div>
     </div>
