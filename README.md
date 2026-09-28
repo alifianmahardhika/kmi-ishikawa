@@ -198,3 +198,11 @@ Warna & wordmark mengikuti `Design-System.md` (badge KMII) — `kmii-green #1b77
 `ink #0c1014`, `on-green #ffffff`. Tema terang diturunkan dari token yang sama karena
 sumber hanya mendokumentasikan satu tema (gelap). Ganti token di `src/index.css`
 begitu ada panduan brand yang lebih lengkap.
+
+## Belum dikerjakan (backlog)
+
+- **Paginasi & filter tanggal** untuk list yang berpotensi panjang seiring waktu:
+  `/admin/donasi` (semua donasi, tanpa batas), `/admin/laporan` (semua pengeluaran),
+  `/kegiatan` & `/admin/kegiatan` (semua event). Saat ini semua query `SELECT *` tanpa
+  `LIMIT`/`OFFSET` — baik-baik saja di awal, tapi query & payload akan makin besar tiap
+  bulan berjalan.
