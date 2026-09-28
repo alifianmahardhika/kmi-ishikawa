@@ -1,25 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, buildQuery } from "../lib/api";
+import { api } from "../lib/api";
 import type { Paginated } from "../types/api";
 import type { EventItem } from "../types/event";
 import { formatDateTimeId } from "../lib/format";
 import { useSEO } from "../hooks/useSEO";
-import { Pagination } from "../components/Pagination";
 
 export default function Kegiatan() {
   useSEO("Kegiatan", "Jadwal kegiatan komunitas KMII Ishikawa.");
-  const [result, setResult] = useState<Paginated<EventItem> | null>(null);
-  const [page, setPage] = useState(1);
+  const [events, setEvents] = useState<EventItem[] | null>(null);
 
+  // No pagination UI here — this is the public page, and calling /api/kegiatan with no
+  // query params (page 1) is the only shape that hits the in-memory cache
+  // (netlify/functions/kegiatan.mts), so it stays cheap on Turso reads regardless of
+  // visitor count. Older/paged kegiatan aren't something public visitors need to dig
+  // through; that's what /admin/kegiatan's date filter + pagination is for.
   useEffect(() => {
     api
-      .get<Paginated<EventItem>>(`/api/kegiatan${buildQuery({ page })}`)
-      .then(setResult)
-      .catch(() => setResult({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 1 }));
-  }, [page]);
-
-  const events = result?.items ?? null;
+      .get<Paginated<EventItem>>("/api/kegiatan")
+      .then((result) => setEvents(result.items))
+      .catch(() => setEvents([]));
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
@@ -35,7 +36,6 @@ export default function Kegiatan() {
           </Link>
         ))}
       </div>
-      {result && <Pagination page={result.page} totalPages={result.totalPages} onPageChange={setPage} />}
     </div>
   );
 }

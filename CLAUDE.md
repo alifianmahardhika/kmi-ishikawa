@@ -66,17 +66,25 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   hardcode nomor rekening/WA lagi di `src/config/contact.ts`; kalau perlu field baru yang
   serupa (mis. rekening kedua), tambahkan sebagai row baru di tabel `settings`, bukan
   balik ke config statis.
-- **Paginasi**: `/api/admin/donasi`, `/api/admin/laporan`, `/api/admin/kegiatan`, dan
-  `/api/kegiatan` (publik) semua pakai `parsePageParams`/`paginatedResponse`
+- **Paginasi**: `/api/admin/donasi`, `/api/admin/laporan`, `/api/admin/kegiatan`,
+  `/api/laporan`, dan `/api/kegiatan` semua pakai `parsePageParams`/`paginatedResponse`
   (`netlify/lib/pagination.ts`) dan balikkan `{items, total, page, pageSize, totalPages}`
-  (`Paginated<T>` di `src/types/api.ts`), bukan array polos. Kalau nambah endpoint list
-  baru yang berpotensi panjang, ikuti pola yang sama alih-alih `SELECT *` tanpa
+  (`Paginated<T>` di `src/types/api.ts`), bukan array polos — `LaporanSummary.expenses`
+  juga sekarang `Paginated<Expense>`, bukan `Expense[]`. Kalau nambah endpoint list baru
+  yang berpotensi panjang, ikuti pola yang sama alih-alih `SELECT *` tanpa
   `LIMIT`/`OFFSET`. Filter tanggal pakai `endOfDayIfDateOnly()` untuk batas atas (`to`) —
   timestamp disimpan ISO string dan dibandingkan leksikografis, jadi `to` yang cuma
   tanggal (`YYYY-MM-DD`) harus di-pad ke akhir hari atau data di hari itu ke-exclude.
   `spent_on` di tabel `expenses` beda — itu sudah date-only, jangan di-pad.
-  Cache publik `/api/kegiatan` (`kegiatan.mts`) HANYA berlaku untuk page 1 tanpa filter —
-  request berparameter lain selalu bypass cache (lihat komentar di file itu kenapa).
+  Cache publik `/api/kegiatan` & `/api/laporan` HANYA berlaku untuk page 1 tanpa filter —
+  request berparameter lain selalu bypass cache (lihat komentar di masing-masing file).
+- **UI filter/paginasi cuma di admin, sengaja** — atas permintaan pemilik proyek untuk
+  hemat kuota Turso: halaman publik (`Kegiatan.tsx`, `Laporan.tsx`) TIDAK punya kontrol
+  `DateRangeFilter`/`Pagination`, selalu fetch tanpa query param (satu-satunya bentuk
+  request yang kena cache). Backend-nya tetap mendukung `page`/`from`/`to` penuh (tidak
+  perlu dihapus dari API), tapi **jangan tambahkan kontrol UI filter/paginasi ke halaman
+  publik** kecuali diminta ulang — itu akan bikin publik bisa bikin request yang bypass
+  cache berkali-kali.
 - **JANGAN hapus/reset `local.db`** untuk keperluan testing (`rm -f local.db*` dkk.) —
   pemilik proyek isi data uji coba sendiri di situ dan migrasi ulang manual kapan perlu
   (`bun run migrate`). Kalau butuh DB kosong untuk verifikasi suatu fitur, jangan sentuh

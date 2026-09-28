@@ -11,10 +11,18 @@ export default function Laporan() {
   const [summary, setSummary] = useState<LaporanSummary | null>(null);
   const [stats, setStats] = useState<DonationStats | null>(null);
 
+  // Deliberately no date filter / pagination controls here — this is the public page,
+  // and calling /api/laporan with no query params (page 1, no filter) is the only
+  // shape that hits the in-memory cache (netlify/functions/laporan.mts), so it stays
+  // cheap on Turso reads no matter how many visitors open this page. Filtering by date
+  // is an admin tool (/admin/laporan), not something public visitors need.
   useEffect(() => {
     api.get<LaporanSummary>(`/api/laporan?campaign=${CAMPAIGN_ID}`).then(setSummary).catch(() => {});
     api.get<DonationStats>(`/api/stats?campaign=${CAMPAIGN_ID}`).then(setStats).catch(() => {});
   }, []);
+
+  const expenses = summary?.expenses.items ?? [];
+  const hasMore = summary ? summary.expenses.totalPages > 1 : false;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
@@ -49,11 +57,11 @@ export default function Laporan() {
       )}
 
       <section className="mb-10">
-        <h2 className="text-xl font-semibold text-(--text) mb-3">Rincian Penyaluran / Pengeluaran</h2>
-        {summary && summary.expenses.length === 0 && (
+        <h2 className="text-xl font-semibold text-(--text) mb-3">Penyaluran / Pengeluaran Terbaru</h2>
+        {summary && expenses.length === 0 && (
           <p className="text-muted text-sm">Belum ada pengeluaran tercatat.</p>
         )}
-        {summary && summary.expenses.length > 0 && (
+        {summary && expenses.length > 0 && (
           <div className="card overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -65,7 +73,7 @@ export default function Laporan() {
                 </tr>
               </thead>
               <tbody>
-                {summary.expenses.map((exp) => (
+                {expenses.map((exp) => (
                   <tr key={exp.id} className="border-t" style={{ borderColor: "var(--surface-border)" }}>
                     <td className="py-2">{formatDateId(exp.spentOn)}</td>
                     <td className="py-2">{exp.title}</td>
@@ -76,6 +84,11 @@ export default function Laporan() {
               </tbody>
             </table>
           </div>
+        )}
+        {hasMore && (
+          <p className="text-xs text-muted mt-2">
+            Menampilkan {expenses.length} dari {summary?.expenses.total} pengeluaran terbaru.
+          </p>
         )}
       </section>
 

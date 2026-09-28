@@ -1,3 +1,5 @@
+import type { Paginated } from "./api";
+
 export interface Expense {
   id: number;
   campaignId: string;
@@ -13,8 +15,10 @@ export type ExpenseCreateInput = Omit<Expense, "id" | "createdAt">;
 
 export interface LaporanSummary {
   campaignId: string;
+  /** All-time totals — unaffected by any from/to filter on `expenses` below. */
   totalIn: number;
   totalOut: number;
   balance: number;
-  expenses: Expense[];
+  /** Paginated, optionally filtered by from/to (spent_on). */
+  expenses: Paginated<Expense>;
 }

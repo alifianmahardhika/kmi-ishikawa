@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AdminNav } from "../../components/admin/AdminNav";
 import { Field } from "../../components/admin/Field";
-import { DateRangeFilter } from "../../components/admin/DateRangeFilter";
+import { DateRangeFilter } from "../../components/DateRangeFilter";
 import { Pagination } from "../../components/Pagination";
 import { api, buildQuery } from "../../lib/api";
 import type { Paginated } from "../../types/api";

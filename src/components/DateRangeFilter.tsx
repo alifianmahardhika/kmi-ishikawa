@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 export function DateRangeFilter({
   from,
   to,
@@ -9,16 +11,18 @@ export function DateRangeFilter({
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
 }) {
+  const fromId = useId();
+  const toId = useId();
   const inputStyle = { borderColor: "var(--surface-border)", background: "var(--bg)" };
 
   return (
     <div className="flex flex-wrap items-end gap-2">
       <div>
-        <label htmlFor="filter-from" className="block text-xs text-muted mb-1">
+        <label htmlFor={fromId} className="block text-xs text-muted mb-1">
           Dari tanggal
         </label>
         <input
-          id="filter-from"
+          id={fromId}
           type="date"
           value={from}
           onChange={(e) => onFromChange(e.target.value)}
@@ -27,11 +31,11 @@ export function DateRangeFilter({
         />
       </div>
       <div>
-        <label htmlFor="filter-to" className="block text-xs text-muted mb-1">
+        <label htmlFor={toId} className="block text-xs text-muted mb-1">
           Sampai tanggal
         </label>
         <input
-          id="filter-to"
+          id={toId}
           type="date"
           value={to}
           onChange={(e) => onToChange(e.target.value)}

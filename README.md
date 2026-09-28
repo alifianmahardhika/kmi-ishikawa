@@ -201,12 +201,18 @@ begitu ada panduan brand yang lebih lengkap.
 
 ## Paginasi & filter tanggal
 
-`/admin/donasi`, `/admin/laporan`, `/admin/kegiatan`, dan `/kegiatan` (publik) memakai
-paginasi berbasis `page`/`pageSize` (`netlify/lib/pagination.ts`), bukan `SELECT *` tanpa
-batas — respons berbentuk `{ items, total, page, pageSize, totalPages }`
-(`src/types/api.ts`'s `Paginated<T>`). Filter tanggal (`from`/`to`, format `YYYY-MM-DD`)
-tersedia di keempatnya lewat `src/components/admin/DateRangeFilter.tsx`; donasi juga
-punya filter status. Komponen `src/components/Pagination.tsx` dipakai bersama di semua
-halaman ini. Cache publik `/kegiatan` (lihat bagian "Cache" di atas) hanya berlaku untuk
-tampilan default (halaman 1, tanpa filter) — request berhalaman/terfilter selalu query
-langsung ke DB.
+Semua endpoint list backend (`/api/admin/donasi`, `/api/admin/laporan`,
+`/api/admin/kegiatan`, `/api/laporan`, `/api/kegiatan`) mendukung `page`/`pageSize` dan
+`from`/`to` (`netlify/lib/pagination.ts`) — tidak ada lagi `SELECT *` tanpa batas.
+Respons berbentuk `{ items, total, page, pageSize, totalPages }` (`Paginated<T>` di
+`src/types/api.ts`).
+
+Tapi di sisi **UI**, kontrol filter/paginasi sengaja hanya dipasang di halaman **admin**
+(`/admin/donasi`, `/admin/laporan`, `/admin/kegiatan` — komponen bersama
+`src/components/DateRangeFilter.tsx` & `src/components/Pagination.tsx`; donasi juga
+punya filter status). Halaman **publik** (`/kegiatan`, `/laporan`) sengaja **tidak** punya
+kontrol ini — selalu memanggil endpoint tanpa parameter (halaman 1, tanpa filter), yang
+satu-satunya bentuk request yang kena cache in-memory (lihat bagian "Cache"). Ini
+disengaja untuk hemat kuota Turso: kalau publik bisa klik ke halaman 2/3/dst atau
+filter tanggal, tiap variasi itu melewati cache dan langsung ke DB. Publik cukup lihat
+data terbaru; riwayat lengkap ada di admin.
