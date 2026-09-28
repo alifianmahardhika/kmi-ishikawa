@@ -1,8 +1,9 @@
 # KMII Ishikawa
 
 Situs komunitas KMII Ishikawa (Keluarga Muslim Indonesia Ishikawa): landing page,
-jadwal sholat & kegiatan, sistem donasi transfer manual dengan kode konfirmasi, laporan
-keuangan transparan, dan panel admin.
+jadwal sholat & kegiatan, donasi bulanan untuk nafkah Imam (transfer manual dengan kode
+konfirmasi, target & progress reset tiap bulan), laporan keuangan transparan, dan panel
+admin (`/admin/login`, tautan ada di footer).
 
 ## Stack
 
@@ -27,7 +28,7 @@ bun install
 cp .env.example .env
 bun scripts/hash-password.ts 'password-anda'   # isi hasilnya ke ADMIN_PASSWORD_HASH di .env
 # isi juga SESSION_SECRET & IP_SALT (string acak apa saja, lihat komentar di .env.example)
-APP_ENV=dev bun run migrate   # buat local.db + seed campaign
+APP_ENV=dev bun run migrate   # buat local.db + seed campaign (selalu jalan, --force)
 bun run dev                   # netlify dev — jalankan Vite + /api/* sekaligus
 ```
 
@@ -37,12 +38,36 @@ Untuk kerja UI saja tanpa menyentuh `/api/*`: `bun run dev:vite`.
 
 ```
 netlify/functions/   Endpoint API (lihat komentar tiap file untuk skema routing)
-netlify/lib/         Kode bersama: db, auth, captcha, validasi, rate limit
-scripts/migrate-db.ts  Migrasi bernomor versi, selalu jalan saat build
+netlify/lib/         Kode bersama: db, auth, captcha, validasi, rate limit, bulan berjalan
+scripts/migrate-db.ts  Migrasi bernomor versi — lihat bagian "Migrasi" di bawah
 src/types/           Tipe data dipakai bersama klien & function
 src/pages/            Halaman publik + src/pages/admin untuk panel admin
-src/config/           contact.ts (kontak & koordinat), rekening.ts (info transfer)
+src/config/           contact.ts, rekening.ts, campaign.ts (id campaign default)
 ```
+
+## Migrasi
+
+`scripts/migrate-db.ts` **tidak** jalan otomatis begitu saja saat build — ini sengaja
+digate di belakang `RUN_MIGRATIONS` supaya tidak menambah satu round-trip ke Turso di
+setiap deploy kalau tidak ada perubahan schema:
+
+```bash
+bun run migrate                        # manual, di shell mana pun (selalu jalan, --force)
+RUN_MIGRATIONS=true bun run build       # auto, dipakai saat deploy yang butuh migrasi baru
+```
+
+Di Netlify: set `RUN_MIGRATIONS=true` di env vars sebelum deploy yang menambah migrasi
+baru, lalu **unset lagi** setelah deploy itu selesai supaya tidak query Turso terus-menerus
+di setiap deploy berikutnya. Migrasi aman dijalankan berkali-kali (idempoten, dilacak per
+versi di tabel `schema_migrations`).
+
+## Donasi bulanan
+
+Target & progress (`/api/stats`) dihitung ulang setiap bulan kalender (UTC) — donasi
+`verified` bulan lalu tidak ikut terhitung di progress bar bulan ini, tapi tetap
+terhitung di `allTimeCollected` (laporan) dan di tabel `expenses` untuk pencatatan
+penyaluran. Admin bisa mengubah nominal target lewat form di `/admin` (Dashboard),
+yang memanggil `PATCH /api/admin/campaign`.
 
 ## Deploy (Netlify)
 

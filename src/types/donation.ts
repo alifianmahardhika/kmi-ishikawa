@@ -35,10 +35,23 @@ export interface PublicDonor {
 
 export interface DonationStats {
   campaignId: string;
+  /** Current month being tracked, e.g. "2026-09" — progress resets every month. */
+  month: string;
   target: number;
+  /** Verified donations within `month` only. */
   collected: number;
+  /** Donor count within `month` only. */
   donorCount: number;
+  /** Verified donations within `month`, most recent first. */
   recentDonors: PublicDonor[];
+  /** Verified donations across all time, for historical context on the laporan page. */
+  allTimeCollected: number;
+}
+
+export interface CampaignUpdateInput {
+  title?: string;
+  description?: string;
+  targetAmount: number;
 }
 
 export interface DonationCreateInput {

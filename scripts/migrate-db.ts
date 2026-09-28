@@ -1,22 +1,51 @@
 /**
- * Versioned migration runner. Unlike kanazawa-masjid/scripts/migrate-db.mjs, this is
- * NOT gated behind a RUN_MIGRATIONS env flag — it always runs as part of `bun run build`,
- * so schema changes actually reach production instead of silently never applying.
- * Each migration is idempotent (IF NOT EXISTS) and tracked in schema_migrations.
+ * Database migration script. Gated so it does NOT hit Turso on every build —
+ * each run is one round-trip to check schema_migrations even when there's
+ * nothing to do, and this repo's `bun run build` calls this script every deploy.
+ *
+ * Run manually:   bun run migrate            (equivalent to --force, any shell)
+ * Auto-run:       set RUN_MIGRATIONS=true in Netlify env vars before deploying
+ *                 (bun run build calls this every time, but it's a no-op unless
+ *                 the flag/--force is set). Unset it again after the migration
+ *                 completes so it doesn't re-run (and re-bill Turso) every deploy.
+ *
+ * Local dev:      APP_ENV=dev  -> writes to ./local.db (SQLite). The gate
+ *                 applies locally too — if `netlify dev` throws "no such table",
+ *                 run `bun run migrate` (with APP_ENV=dev in .env) first.
+ * Production:     TURSO_DATABASE_URL + TURSO_AUTH_TOKEN required.
+ *
+ * Migrations are idempotent (IF NOT EXISTS / tracked by version in
+ * schema_migrations) and never rewritten once applied — add new ones to
+ * MIGRATIONS below instead of editing existing entries.
  */
 import { createClient } from "@libsql/client";
 
-const url =
-  process.env.APP_ENV === "dev"
-    ? "file:./local.db"
-    : process.env.TURSO_DATABASE_URL;
-const authToken = process.env.APP_ENV === "dev" ? undefined : process.env.TURSO_AUTH_TOKEN;
-
-if (!url) {
-  throw new Error("No database URL configured (set APP_ENV=dev or TURSO_DATABASE_URL)");
+const forced = process.argv.includes("--force");
+if (process.env.RUN_MIGRATIONS !== "true" && !forced) {
+  console.log(
+    "RUN_MIGRATIONS is not 'true' (and no --force flag) — skipping migrations.",
+  );
+  process.exit(0);
 }
 
-const client = createClient(authToken ? { url, authToken } : { url });
+function getClient() {
+  if (process.env.APP_ENV === "dev") {
+    console.log("Using local SQLite database: ./local.db");
+    return createClient({ url: "file:./local.db" });
+  }
+
+  const url = process.env.TURSO_DATABASE_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+  if (!url || !authToken) {
+    console.error(
+      "ERROR: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set for production migrations.",
+    );
+    process.exit(1);
+  }
+
+  console.log(`Using Turso database: ${url}`);
+  return createClient({ url, authToken });
+}
 
 interface Migration {
   version: number;
@@ -84,42 +113,46 @@ const MIGRATIONS: Migration[] = [
     sql: [
       `INSERT OR IGNORE INTO campaigns (id, title, description, target_amount, is_active, created_at)
        VALUES (
-         'masjid-2026',
-         'Pembangunan Musala KMI Ishikawa',
-         'Donasi untuk pembangunan dan operasional musala komunitas Muslim Indonesia di Ishikawa.',
-         3000000,
+         'nafkah-imam',
+         'Nafkah Bulanan Imam KMII Ishikawa',
+         'Donasi rutin bulanan untuk mendukung nafkah Imam KMII Ishikawa. Target dan progress direset setiap bulan.',
+         150000,
          1,
          '${new Date().toISOString()}'
        )`,
     ],
   },
+  // Tambahkan migrasi baru di sini — jangan pernah mengedit/menghapus entri yang sudah ada.
+  //
+  // Contoh:
+  // {
+  //   version: 3,
+  //   name: "tambah kolom X ke Y",
+  //   sql: ["ALTER TABLE y ADD COLUMN x TEXT NOT NULL DEFAULT ''"],
+  // },
 ];
 
-async function ensureMigrationsTable() {
+async function migrate() {
+  const client = getClient();
+
   await client.execute(
     `CREATE TABLE IF NOT EXISTS schema_migrations (
       version INTEGER PRIMARY KEY,
       applied_at TEXT NOT NULL
     )`,
   );
-}
 
-async function appliedVersions(): Promise<Set<number>> {
-  const result = await client.execute("SELECT version FROM schema_migrations");
-  return new Set(result.rows.map((row) => Number(row.version)));
-}
+  const applied = await client.execute("SELECT version FROM schema_migrations");
+  const appliedSet = new Set(applied.rows.map((r) => Number(r.version)));
 
-async function run() {
-  console.log(`Migrating database (APP_ENV=${process.env.APP_ENV ?? "production"})...`);
-  await ensureMigrationsTable();
-  const applied = await appliedVersions();
-
+  let ran = 0;
   for (const migration of MIGRATIONS.sort((a, b) => a.version - b.version)) {
-    if (applied.has(migration.version)) {
-      console.log(`  [skip] v${migration.version} ${migration.name} (already applied)`);
+    if (appliedSet.has(migration.version)) {
+      console.log(`  ✓ v${migration.version} ${migration.name} (already applied)`);
       continue;
     }
-    console.log(`  [run]  v${migration.version} ${migration.name}`);
+
+    console.log(`  → Running v${migration.version} ${migration.name} ...`);
     for (const sql of migration.sql) {
       await client.execute(sql);
     }
@@ -127,16 +160,20 @@ async function run() {
       sql: "INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)",
       args: [migration.version, new Date().toISOString()],
     });
+    console.log(`  ✓ v${migration.version} applied`);
+    ran++;
   }
 
-  console.log("Migration complete.");
+  console.log(
+    ran === 0
+      ? "\nAll migrations already applied — nothing to do."
+      : `\n${ran} migration(s) applied successfully.`,
+  );
+
+  client.close();
 }
 
-run()
-  .catch((err) => {
-    console.error("Migration failed:", err);
-    process.exit(1);
-  })
-  .finally(() => {
-    client.close();
-  });
+migrate().catch((err) => {
+  console.error("Migration failed:", err);
+  process.exit(1);
+});

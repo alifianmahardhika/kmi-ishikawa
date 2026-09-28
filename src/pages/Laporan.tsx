@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { LaporanSummary } from "../types/expense";
 import type { DonationStats } from "../types/donation";
-import { formatYen, formatDateId } from "../lib/format";
+import { formatYen, formatDateId, formatMonthId } from "../lib/format";
 import { useSEO } from "../hooks/useSEO";
-
-const CAMPAIGN_ID = "masjid-2026";
+import { DEFAULT_CAMPAIGN_ID as CAMPAIGN_ID } from "../config/campaign";
 
 export default function Laporan() {
-  useSEO("Laporan Keuangan", "Transparansi donasi dan pengeluaran KMII Ishikawa.");
+  useSEO("Laporan Keuangan", "Transparansi donasi dan nafkah bulanan Imam KMII Ishikawa.");
   const [summary, setSummary] = useState<LaporanSummary | null>(null);
   const [stats, setStats] = useState<DonationStats | null>(null);
 
@@ -21,8 +20,16 @@ export default function Laporan() {
     <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="section-title">Laporan Keuangan</h1>
       <p className="text-muted mb-8">
-        Ringkasan donasi yang terverifikasi dan penggunaan dana untuk pembangunan musala.
+        Ringkasan donasi yang terverifikasi dan penyaluran dana untuk nafkah bulanan Imam.
+        Total di bawah ini akumulasi sepanjang waktu; progress bulan berjalan ada di
+        halaman <a href="/donasi" className="text-(--primary) underline">Donasi</a>.
       </p>
+
+      {stats && (
+        <p className="text-sm text-muted mb-4">
+          Total donasi terverifikasi sepanjang waktu: <span className="font-semibold text-(--text)">{formatYen(stats.allTimeCollected)}</span>
+        </p>
+      )}
 
       {summary && (
         <div className="grid sm:grid-cols-3 gap-4 mb-8">
@@ -42,7 +49,7 @@ export default function Laporan() {
       )}
 
       <section className="mb-10">
-        <h2 className="text-xl font-semibold text-(--text) mb-3">Rincian Pengeluaran</h2>
+        <h2 className="text-xl font-semibold text-(--text) mb-3">Rincian Penyaluran / Pengeluaran</h2>
         {summary && summary.expenses.length === 0 && (
           <p className="text-muted text-sm">Belum ada pengeluaran tercatat.</p>
         )}
@@ -73,9 +80,11 @@ export default function Laporan() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold text-(--text) mb-3">Donatur</h2>
+        <h2 className="text-xl font-semibold text-(--text) mb-3">
+          Donatur Bulan {stats ? formatMonthId(stats.month) : ""}
+        </h2>
         {stats && stats.recentDonors.length === 0 && (
-          <p className="text-muted text-sm">Belum ada donasi terverifikasi.</p>
+          <p className="text-muted text-sm">Belum ada donasi terverifikasi bulan ini.</p>
         )}
         <ul className="space-y-2">
           {stats?.recentDonors.map((donor, i) => (

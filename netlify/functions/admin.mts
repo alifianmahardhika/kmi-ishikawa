@@ -9,9 +9,10 @@ import {
   unauthorized,
 } from "../lib/respond";
 import { optionalString, requireBoolean, requireInt, requireString } from "../lib/validate";
-import type { Donation, DonationStatus } from "../../src/types/donation";
+import type { Campaign, Donation, DonationStatus } from "../../src/types/donation";
 import type { EventItem } from "../../src/types/event";
 import type { Expense } from "../../src/types/expense";
+import { DEFAULT_CAMPAIGN_ID } from "../../src/config/campaign";
 
 // Every /api/admin/* request lands here (Netlify routes any path under
 // /.netlify/functions/admin/* to this one function) — we parse the remainder of the
@@ -35,6 +36,7 @@ export default async function handler(req: Request): Promise<Response> {
     if (resource === "donasi") return await handleDonasi(req, id);
     if (resource === "kegiatan") return await handleKegiatan(req, id);
     if (resource === "laporan") return await handleLaporan(req, id);
+    if (resource === "campaign") return await handleCampaign(req);
 
     return notFound();
   } catch (err) {
@@ -262,6 +264,64 @@ async function handleLaporan(req: Request, id?: string): Promise<Response> {
     const result = await db.execute({ sql: "DELETE FROM expenses WHERE id = ?", args: [Number(id)] });
     if (result.rowsAffected === 0) return notFound("expense_not_found");
     return json({ ok: true });
+  }
+
+  return methodNotAllowed();
+}
+
+function toCampaign(row: Record<string, unknown>): Campaign {
+  return {
+    id: String(row.id),
+    title: String(row.title),
+    description: String(row.description ?? ""),
+    targetAmount: Number(row.target_amount),
+    isActive: Boolean(row.is_active),
+    createdAt: String(row.created_at),
+  };
+}
+
+// Single-resource: no :id in the URL — a query param picks which campaign, defaulting
+// to the one the public site shows (src/config/campaign.ts's DEFAULT_CAMPAIGN_ID).
+async function handleCampaign(req: Request): Promise<Response> {
+  const db = getDb();
+  const url = new URL(req.url);
+  const campaignId = url.searchParams.get("campaign") ?? DEFAULT_CAMPAIGN_ID;
+
+  if (req.method === "GET") {
+    const result = await db.execute({ sql: "SELECT * FROM campaigns WHERE id = ?", args: [campaignId] });
+    const row = result.rows[0];
+    if (!row) return notFound("campaign_not_found");
+    return json(toCampaign(row as Record<string, unknown>));
+  }
+
+  if (req.method === "PATCH") {
+    const body = await req.json().catch(() => ({}));
+    try {
+      const targetAmount = requireInt(body.targetAmount, "targetAmount", { min: 1, max: 100_000_000 });
+      const title = optionalString(body.title, "title", 200);
+      const description = optionalString(body.description, "description", 1000);
+
+      const sets = ["target_amount = ?"];
+      const args: (string | number)[] = [targetAmount];
+      if (title) {
+        sets.push("title = ?");
+        args.push(title);
+      }
+      if (description) {
+        sets.push("description = ?");
+        args.push(description);
+      }
+      args.push(campaignId);
+
+      const result = await db.execute({
+        sql: `UPDATE campaigns SET ${sets.join(", ")} WHERE id = ?`,
+        args,
+      });
+      if (result.rowsAffected === 0) return notFound("campaign_not_found");
+      return json({ ok: true });
+    } catch (err) {
+      return badRequest(err instanceof Error ? err.message : "invalid_input");
+    }
   }
 
   return methodNotAllowed();

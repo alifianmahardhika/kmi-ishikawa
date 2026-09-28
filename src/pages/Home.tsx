@@ -39,7 +39,7 @@ export default function Home() {
           {CONTACT.orgName} ({CONTACT.orgFullName}) adalah wadah silaturahmi dan kegiatan
           keagamaan bagi Muslim Indonesia yang tinggal di Ishikawa, Jepang. Kami mengadakan
           kajian rutin, sholat berjamaah, dan berbagai kegiatan komunitas — sekaligus
-          menggalang donasi untuk pembangunan musala.
+          menggalang donasi rutin bulanan untuk mendukung nafkah Imam kami.
         </p>
       </section>
     </div>

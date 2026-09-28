@@ -5,7 +5,7 @@ import type { Expense, ExpenseCreateInput } from "../../types/expense";
 import { formatYen, formatDateId } from "../../lib/format";
 import { useSEO } from "../../hooks/useSEO";
 
-const CAMPAIGN_ID = "masjid-2026";
+import { DEFAULT_CAMPAIGN_ID as CAMPAIGN_ID } from "../../config/campaign";
 const EMPTY: ExpenseCreateInput = {
   campaignId: CAMPAIGN_ID,
   title: "",
