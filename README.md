@@ -15,24 +15,34 @@ admin (`/admin/login`, tautan ada di footer).
 
 ## Setup
 
-> **Catatan Windows/Node 24:** `netlify dev` (dipakai untuk menjalankan `/api/*` secara
-> lokal) mengalami *segmentation fault* di Node 24 saat menangani rute bersegmen seperti
-> `/api/kegiatan/:slug` — ini bug kompatibilitas `netlify-cli`, bukan kode di repo ini
-> (sudah diverifikasi: memanggil handler function secara langsung selalu memberi hasil
-> benar). Proyek ini menyertakan `.node-version` (Node 22) — kalau memakai
-> [fnm](https://github.com/Schniz/fnm)/nvm, jalankan `fnm use` (atau `nvm use`) di root
-> proyek sebelum `bun run dev` agar `netlify dev` memakai Node 22, bukan Node 24.
-
 ```bash
 bun install
 cp .env.example .env
 bun scripts/hash-password.ts 'password-anda'   # isi hasilnya ke ADMIN_PASSWORD_HASH di .env
 # isi juga SESSION_SECRET & IP_SALT (string acak apa saja, lihat komentar di .env.example)
 APP_ENV=dev bun run migrate   # buat local.db + seed campaign (selalu jalan, --force)
-bun run dev                   # netlify dev — jalankan Vite + /api/* sekaligus
+bun run dev                   # Vite + /api/* sekaligus (lihat "Dev server" di bawah)
 ```
 
 Untuk kerja UI saja tanpa menyentuh `/api/*`: `bun run dev:vite`.
+
+## Dev server
+
+`bun run dev` (`scripts/dev-server.ts`) **bukan** `netlify dev` — itu sengaja. `netlify-cli`
+terbukti tidak andal untuk dev lokal di Windows: segfault di Node 24 untuk rute bersegmen
+(`/api/kegiatan/:slug`), dan macet total tanpa error (request masuk, tidak pernah ada
+respons) bahkan di Node 22 untuk request sesederhana `POST /api/donasi` — sementara
+memanggil function handler-nya langsung (tanpa lewat `netlify-cli`) selalu berhasil dan
+instan. Jadi `bun run dev` sekarang: `Bun.serve` sendiri untuk `/api/*` (langsung
+`import()` file di `netlify/functions/`, tanpa bundler/proxy tambahan) + Vite untuk
+frontend, dihubungkan lewat `server.proxy` di `vite.config.ts`.
+
+`netlify dev` yang asli masih ada sebagai `bun run dev:netlify`, untuk sesekali cek
+perilaku spesifik Netlify (redirect, edge functions) — tapi siap-siap dengan
+ketidakstabilan di atas. Kalau dipakai, butuh Node 22 (`.node-version`); scriptnya
+otomatis dicek lewat `predev:netlify` (`scripts/check-node-version.ts`), yang akan
+menolak jalan kalau `node` di PATH bukan versi 22.x, dengan pesan cara memperbaikinya
+(`fnm use` / `nvm use`).
 
 ## Struktur
 
@@ -82,8 +92,11 @@ yang memanggil `PATCH /api/admin/campaign`.
 
 - Tidak ada rahasia di bundle klien — semua `TURSO_*`/`SESSION_SECRET`/`ADMIN_PASSWORD_HASH`
   hanya dibaca di `netlify/functions`.
-- Form donasi publik dilindungi honeypot + captcha matematika bertanda tangan server
-  (bukan hanya validasi di browser) + rate limit per IP (di-hash, IP asli tidak disimpan).
+- Form donasi publik dilindungi honeypot + captcha matematika sederhana (cek di browser
+  saja, seperti `kanazawa-masjid`) + rate limit per IP (di-hash, IP asli tidak disimpan).
+  Captcha sengaja tidak diverifikasi ulang di server — donasi tetap harus diverifikasi
+  manual oleh admin (lewat kode konfirmasi) sebelum terhitung di mana pun yang publik,
+  jadi captcha di sini hanya penyaring spam ringan, bukan gerbang keamanan.
 - Sesi admin: cookie `HttpOnly; SameSite=Strict` ditandatangani HMAC, tanpa tabel sesi.
 
 ## Desain

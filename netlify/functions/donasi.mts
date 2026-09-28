@@ -1,5 +1,4 @@
 import { getDb } from "../lib/db";
-import { verifyCaptcha } from "../lib/captcha";
 import { getClientIp, hashIp, isRateLimited } from "../lib/ratelimit";
 import { generateDonationCode } from "../lib/codegen";
 import { badRequest, json, methodNotAllowed, tooManyRequests } from "../lib/respond";
@@ -43,12 +42,10 @@ export default async function handler(req: Request, context: FunctionContext): P
     const message = optionalString(body.message, "message", 500);
     const contact = optionalString(body.contact, "contact", 200);
 
-    if (typeof body.captchaToken !== "string" || typeof body.captchaAnswer !== "number") {
-      return badRequest("captcha_invalid");
-    }
-    if (!verifyCaptcha(body.captchaToken, body.captchaAnswer)) {
-      return badRequest("captcha_invalid");
-    }
+    // Captcha is checked client-side only (src/lib/captcha.ts) — donations still need
+    // manual admin verification via the confirmation code before counting toward
+    // anything public, so this endpoint leans on the honeypot + rate limit above for
+    // server-side anti-spam instead of re-verifying the math here.
 
     const db = getDb();
     const campaign = await db.execute({

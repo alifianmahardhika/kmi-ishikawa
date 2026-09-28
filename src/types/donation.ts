@@ -63,8 +63,6 @@ export interface DonationCreateInput {
   contact?: string;
   /** Honeypot field — must be empty. Named innocuously on the client. */
   website?: string;
-  captchaToken: string;
-  captchaAnswer: number;
 }
 
 export interface DonationCreateResponse {

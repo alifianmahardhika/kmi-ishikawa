@@ -31,17 +31,28 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   (`@theme` + CSS var per tema). Update di satu tempat itu saja.
 - **Bahasa**: situs ini Indonesia saja — jangan tambahkan layer i18n multi-bahasa kecuali
   diminta.
-- **`netlify dev` butuh Node 22, bukan Node 24** di mesin Windows ini — Node 24 segfault
-  di proxy function lokal `netlify-cli` untuk rute bersegmen (`/api/kegiatan/:slug`, dll).
-  `.node-version` di root mengunci ini untuk fnm/nvm. Kalau menambah endpoint baru dengan
-  path bersegmen, uji dulu dengan Node 22 sebelum menyimpulkan ada bug di kode.
+- **`bun run dev` TIDAK pakai `netlify-cli` lagi** (`scripts/dev-server.ts`) — `netlify-cli`
+  terbukti tidak andal di Windows: segfault di Node 24 untuk rute bersegmen, DAN macet
+  total tanpa error di Node 22 juga untuk `POST /api/donasi` yang sederhana (request
+  masuk, tidak pernah direspons). Kalau ada endpoint baru yang "sepertinya tidak
+  merespons" saat diuji, jangan langsung curiga ke kode — coba panggil handler-nya
+  langsung dulu (`bun -e` atau script sekali pakai yang mengimpor & memanggil
+  `mod.default(req, context)`) sebelum menyimpulkan ada bug. `bun run dev:netlify` (perlu
+  Node 22, dicek otomatis lewat `predev:netlify`/`scripts/check-node-version.ts`) masih
+  ada untuk sesekali cek perilaku spesifik Netlify, tapi bukan default lagi.
+- **Captcha donasi cuma dicek di klien** (`src/lib/captcha.ts`) — sengaja, atas permintaan
+  pemilik proyek: karena donasi tetap perlu verifikasi manual admin via kode konfirmasi
+  sebelum terhitung publik, captcha di sini hanya penyaring spam ringan (bukan gerbang
+  keamanan), jadi tidak perlu token bertanda tangan server seperti sebelumnya. Jangan
+  tambahkan lagi endpoint `/api/captcha` kecuali diminta ulang.
 
 ## Perintah
 
 ```bash
-bun run dev         # netlify dev — Vite + /api/* sekaligus
-bun run dev:vite     # UI saja, tanpa /api/*
-bun run typecheck    # tsc --noEmit
-bun run migrate      # migrasi manual, selalu jalan (--force; APP_ENV=dev untuk local.db)
-bun run build        # migrate (gated RUN_MIGRATIONS) + typecheck + vite build
+bun run dev          # scripts/dev-server.ts — Bun.serve untuk /api/* + Vite, tanpa netlify-cli
+bun run dev:vite      # UI saja, tanpa /api/*
+bun run dev:netlify   # netlify dev asli (butuh Node 22) — sesekali saja, lihat catatan di atas
+bun run typecheck     # tsc --noEmit
+bun run migrate       # migrasi manual, selalu jalan (--force; APP_ENV=dev untuk local.db)
+bun run build         # migrate (gated RUN_MIGRATIONS) + typecheck + vite build
 ```

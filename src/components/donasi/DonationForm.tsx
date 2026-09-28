@@ -1,14 +1,10 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { api, ApiRequestError } from "../../lib/api";
 import type { DonationCreateInput, DonationCreateResponse } from "../../types/donation";
 import { formatYen } from "../../lib/format";
+import { generateCaptcha } from "../../lib/captcha";
 
 const PRESET_AMOUNTS = [1000, 3000, 5000, 10000];
-
-interface CaptchaChallenge {
-  question: string;
-  token: string;
-}
 
 export function DonationForm({
   campaignId,
@@ -25,13 +21,9 @@ export function DonationForm({
   const [contact, setContact] = useState("");
   const [website, setWebsite] = useState(""); // honeypot — must stay empty
   const [captchaAnswer, setCaptchaAnswer] = useState("");
-  const [captcha, setCaptcha] = useState<CaptchaChallenge | null>(null);
+  const [captcha, setCaptcha] = useState(() => generateCaptcha());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    api.get<CaptchaChallenge>("/api/captcha").then(setCaptcha).catch(() => setCaptcha(null));
-  }, []);
 
   const effectiveAmount = customAmount ? Number(customAmount) : amount;
 
@@ -39,8 +31,10 @@ export function DonationForm({
     e.preventDefault();
     setError(null);
 
-    if (!captcha) {
-      setError("Captcha belum siap. Muat ulang halaman.");
+    if (Number(captchaAnswer) !== captcha.answer) {
+      setError("Jawaban captcha salah. Coba lagi.");
+      setCaptcha(generateCaptcha());
+      setCaptchaAnswer("");
       return;
     }
     if (!Number.isFinite(effectiveAmount) || effectiveAmount < 500) {
@@ -56,8 +50,6 @@ export function DonationForm({
       message,
       contact,
       website,
-      captchaToken: captcha.token,
-      captchaAnswer: Number(captchaAnswer),
     };
 
     setSubmitting(true);
@@ -65,17 +57,10 @@ export function DonationForm({
       const res = await api.post<DonationCreateResponse>("/api/donasi", payload);
       onSuccess(res.code);
     } catch (err) {
-      if (err instanceof ApiRequestError) {
-        if (err.code === "too_many_requests") {
-          setError("Terlalu banyak percobaan. Coba lagi nanti.");
-        } else if (err.code === "captcha_invalid") {
-          setError("Jawaban captcha salah atau kedaluwarsa. Coba lagi.");
-          api.get<CaptchaChallenge>("/api/captcha").then(setCaptcha).catch(() => {});
-        } else {
-          setError("Gagal mengirim donasi. Periksa kembali data Anda.");
-        }
+      if (err instanceof ApiRequestError && err.code === "too_many_requests") {
+        setError("Terlalu banyak percobaan. Coba lagi nanti.");
       } else {
-        setError("Terjadi kesalahan jaringan. Coba lagi.");
+        setError("Gagal mengirim donasi. Periksa kembali data Anda.");
       }
     } finally {
       setSubmitting(false);
@@ -180,22 +165,20 @@ export function DonationForm({
         />
       </div>
 
-      {captcha && (
-        <div>
-          <label htmlFor="captchaAnswer" className="block text-sm font-medium text-(--text) mb-1">
-            Berapa {captcha.question}?
-          </label>
-          <input
-            id="captchaAnswer"
-            required
-            inputMode="numeric"
-            value={captchaAnswer}
-            onChange={(e) => setCaptchaAnswer(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2"
-            style={{ borderColor: "var(--surface-border)", background: "var(--bg)" }}
-          />
-        </div>
-      )}
+      <div>
+        <label htmlFor="captchaAnswer" className="block text-sm font-medium text-(--text) mb-1">
+          Berapa {captcha.question}?
+        </label>
+        <input
+          id="captchaAnswer"
+          required
+          inputMode="numeric"
+          value={captchaAnswer}
+          onChange={(e) => setCaptchaAnswer(e.target.value)}
+          className="w-full rounded-lg border px-3 py-2"
+          style={{ borderColor: "var(--surface-border)", background: "var(--bg)" }}
+        />
+      </div>
 
       {error && <p className="text-sm" style={{ color: "var(--color-flag-red-id)" }}>{error}</p>}
 
