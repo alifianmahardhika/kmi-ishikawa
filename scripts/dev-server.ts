@@ -22,7 +22,7 @@ const API_PORT = 8889;
 
 // Every file in netlify/functions/ handles one first path segment under /api/ (see
 // each function's own top comment for how it routes sub-paths itself).
-const FUNCTION_NAMES = new Set(["donasi", "stats", "laporan", "kegiatan", "admin"]);
+const FUNCTION_NAMES = new Set(["donasi", "stats", "laporan", "kegiatan", "admin", "settings"]);
 
 const server = Bun.serve({
   port: API_PORT,

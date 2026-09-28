@@ -4,7 +4,7 @@ import { useSettings } from "../../hooks/useSettings";
 
 export function KodeKonfirmasi({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
-  const settings = useSettings();
+  const { settings, status } = useSettings();
 
   async function copyCode() {
     try {
@@ -34,7 +34,16 @@ export function KodeKonfirmasi({ code }: { code: string }) {
         </button>
       </div>
 
-      {settings ? (
+      {status === "loading" && <p className="text-sm text-muted">Memuat detail rekening...</p>}
+
+      {status === "error" && (
+        <p className="text-sm" style={{ color: "var(--color-flag-red-id)" }}>
+          Gagal memuat detail rekening. Muat ulang halaman ini, atau simpan kode di atas
+          dan hubungi bendahara langsung lewat grup WhatsApp komunitas.
+        </p>
+      )}
+
+      {status === "ok" && settings && (
         <>
           <div className="card text-left mb-6 space-y-1">
             <p className="font-semibold text-(--text) mb-2">Detail Rekening</p>
@@ -54,8 +63,6 @@ export function KodeKonfirmasi({ code }: { code: string }) {
             Kirim Bukti Transfer via WhatsApp
           </a>
         </>
-      ) : (
-        <p className="text-sm text-muted">Memuat detail rekening...</p>
       )}
     </div>
   );
