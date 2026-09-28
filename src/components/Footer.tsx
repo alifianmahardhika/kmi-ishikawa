@@ -31,7 +31,7 @@ export function Footer() {
       </div>
       <div className="text-center text-xs text-muted pb-6">
         © {new Date().getFullYear()} {CONTACT.orgName} ·{" "}
-        <a href="/admin/login" className="hover:text-(--text)">
+        <a href="/admin/login" target="_blank" rel="noreferrer" className="hover:text-(--text)">
           Admin
         </a>
       </div>

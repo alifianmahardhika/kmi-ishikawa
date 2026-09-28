@@ -26,17 +26,20 @@ const router = createBrowserRouter([
       { path: "kegiatan", element: <Kegiatan /> },
       { path: "kegiatan/:slug", element: <KegiatanDetail /> },
       { path: "kontak", element: <Kontak /> },
-      { path: "admin/login", element: <Login /> },
-      {
-        path: "admin",
-        element: <AdminGuard />,
-        children: [
-          { index: true, element: <Dashboard /> },
-          { path: "donasi", element: <DonasiAdmin /> },
-          { path: "kegiatan", element: <KegiatanAdmin /> },
-          { path: "laporan", element: <LaporanAdmin /> },
-        ],
-      },
+    ],
+  },
+  // Admin routes deliberately sit outside <Layout> — no public Navbar/Footer, so there's
+  // no site-nav link an admin could misclick and accidentally leave the admin area
+  // through. Each protected admin page renders its own <AdminNav /> instead.
+  { path: "admin/login", element: <Login /> },
+  {
+    path: "admin",
+    element: <AdminGuard />,
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: "donasi", element: <DonasiAdmin /> },
+      { path: "kegiatan", element: <KegiatanAdmin /> },
+      { path: "laporan", element: <LaporanAdmin /> },
     ],
   },
 ]);
