@@ -1,4 +1,5 @@
 import { getDb } from "../lib/db";
+import { cacheGet, cacheSet, cacheKeys } from "../lib/cache";
 import { json, methodNotAllowed, notFound } from "../lib/respond";
 import type { EventItem } from "../../src/types/event";
 
@@ -39,8 +40,14 @@ export default async function handler(req: Request): Promise<Response> {
     return json(toEventItem(row as Record<string, unknown>));
   }
 
+  const cacheKey = cacheKeys.kegiatanList();
+  const cached = cacheGet<EventItem[]>(cacheKey);
+  if (cached) return json(cached);
+
   const result = await db.execute(
     "SELECT * FROM events WHERE is_published = 1 ORDER BY starts_at ASC",
   );
-  return json(result.rows.map((row) => toEventItem(row as Record<string, unknown>)));
+  const events = result.rows.map((row) => toEventItem(row as Record<string, unknown>));
+  cacheSet(cacheKey, events);
+  return json(events);
 }

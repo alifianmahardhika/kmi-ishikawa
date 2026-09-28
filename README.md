@@ -79,14 +79,93 @@ terhitung di `allTimeCollected` (laporan) dan di tabel `expenses` untuk pencatat
 penyaluran. Admin bisa mengubah nominal target lewat form di `/admin` (Dashboard),
 yang memanggil `PATCH /api/admin/campaign`.
 
+## Cache
+
+`/api/stats`, `/api/laporan`, dan `/api/kegiatan` (list) di-cache in-memory di dalam
+function-nya sendiri (`netlify/lib/cache.ts`) — pola yang sama seperti
+`kanazawa-masjid/netlify/functions/register.mjs`: variabel JS module-scope, **bukan**
+Redis atau layanan tambahan apa pun. TTL 6 jam sebagai jaring pengaman (sama seperti
+`SESSION_CACHE_TTL` di referensi), tapi mekanisme utamanya adalah invalidate-on-write:
+begitu admin verifikasi/tolak donasi, CRUD kegiatan, CRUD pengeluaran, atau ubah target
+campaign, cache yang relevan langsung dihapus (`netlify/functions/admin.mts`) — jadi
+perubahan admin langsung terlihat, tidak menunggu jam-jaman. TTL 6 jam hanya jaring
+pengaman kalau ada perubahan yang lupa di-invalidate, atau instance function lain (lihat
+keterbatasan di bawah) belum tahu ada perubahan.
+
+Keterbatasan yang perlu diketahui: cache ini per-instance function (Netlify bisa
+menjalankan beberapa instance bersamaan, masing-masing punya cache sendiri-sendiri) —
+cukup untuk trafik situs komunitas seperti ini, tapi bukan jaminan semua orang selalu
+lihat angka yang identik detik itu juga.
+
 ## Deploy (Netlify)
 
-1. Buat database Turso: `turso db create kmii-ishikawa` lalu `turso db tokens create kmii-ishikawa`.
-2. Di Netlify, set env: `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_PASSWORD_HASH`,
-   `SESSION_SECRET`, `IP_SALT`. **Jangan** set `APP_ENV` di produksi (biarkan kosong —
-   itu yang membedakan ke Turso vs `local.db`).
-3. Push — `netlify.toml` menjalankan `bun run build` (migrate → typecheck → vite build)
-   dan mem-publish `dist/`.
+Checklist sebelum deploy pertama kali:
+
+### 1. Isi konfigurasi yang masih placeholder
+
+Semua tempat ini punya `TODO` — cari dengan `grep -rn "TODO" src/config`:
+
+- `src/config/rekening.ts` — nama bank, cabang, nomor rekening, atas nama
+- `src/config/contact.ts` — nomor WhatsApp bendahara (`whatsappTreasurer.phone`, format
+  E.164 tanpa `+`, mis. `818012345678`), link grup WhatsApp, handle Instagram,
+  `mapsEmbedUrl`
+- Logo/badge asli (lihat `Design-System.md`) — belum ada file gambarnya, situs masih
+  pakai placeholder huruf "K" di navbar
+
+### 2. Siapkan Turso
+
+```bash
+turso db create kmii-ishikawa
+turso db tokens create kmii-ishikawa
+```
+
+Catat `TURSO_DATABASE_URL` (dari `turso db show kmii-ishikawa --url`) dan
+`TURSO_AUTH_TOKEN` (dari command tokens di atas).
+
+### 3. Generate kredensial produksi (JANGAN pakai yang di `.env` lokal — itu untuk testing)
+
+```bash
+bun scripts/hash-password.ts 'password-admin-produksi-anda'   # -> ADMIN_PASSWORD_HASH
+bun -e "console.log(crypto.randomUUID() + crypto.randomUUID())"  # -> SESSION_SECRET
+bun -e "console.log(crypto.randomUUID())"                        # -> IP_SALT
+```
+
+### 4. Set environment variables di Netlify (Site settings → Environment variables)
+
+| Key | Nilai |
+|---|---|
+| `TURSO_DATABASE_URL` | dari langkah 2 |
+| `TURSO_AUTH_TOKEN` | dari langkah 2 |
+| `ADMIN_PASSWORD_HASH` | dari langkah 3 |
+| `SESSION_SECRET` | dari langkah 3 |
+| `IP_SALT` | dari langkah 3 |
+| `RUN_MIGRATIONS` | `true` (**hanya untuk deploy pertama** — lihat bagian "Migrasi" di atas, unset lagi setelahnya) |
+
+**Jangan** set `APP_ENV` di produksi (biarkan kosong — itu yang membuat app baca dari
+Turso, bukan `local.db`).
+
+### 5. Hubungkan repo & deploy
+
+Di Netlify: **Add new site → Import an existing project**, pilih repo GitHub ini.
+Build command dan publish directory sudah otomatis kebaca dari `netlify.toml`
+(`bun run build` → `dist/`). Deploy.
+
+### 6. Verifikasi setelah deploy pertama sukses
+
+- [ ] Buka domain Netlify-nya, cek Beranda tampil dengan jadwal sholat
+- [ ] Cek `/donasi` → submit donasi tes → kode konfirmasi muncul
+- [ ] Login `/admin/login` dengan password dari langkah 3 → verifikasi donasi tes tadi
+  → cek `/donasi` progress bertambah
+- [ ] **Unset `RUN_MIGRATIONS`** di Netlify env vars (supaya deploy berikutnya tidak
+  query Turso untuk migrasi yang percuma)
+- [ ] Hapus donasi/campaign data tes lewat `turso db shell kmii-ishikawa` kalau perlu
+  data produksi yang bersih
+
+### Deploy berikutnya (setelah yang pertama)
+
+Push ke branch yang dihubungkan Netlify — otomatis build & deploy. Kalau ada migrasi
+schema baru di `scripts/migrate-db.ts`, set `RUN_MIGRATIONS=true` untuk deploy itu saja,
+lalu unset lagi (lihat bagian "Migrasi").
 
 ## Keamanan
 

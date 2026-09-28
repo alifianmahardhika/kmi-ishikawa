@@ -1,4 +1,5 @@
 import { getDb } from "../lib/db";
+import { cacheGet, cacheSet, cacheKeys } from "../lib/cache";
 import { badRequest, json, methodNotAllowed } from "../lib/respond";
 import type { Expense, LaporanSummary } from "../../src/types/expense";
 
@@ -8,6 +9,10 @@ export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const campaignId = url.searchParams.get("campaign");
   if (!campaignId) return badRequest("campaign_required");
+
+  const cacheKey = cacheKeys.laporan(campaignId);
+  const cached = cacheGet<LaporanSummary>(cacheKey);
+  if (cached) return json(cached);
 
   const db = getDb();
 
@@ -34,5 +39,6 @@ export default async function handler(req: Request): Promise<Response> {
   const totalOut = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   const summary: LaporanSummary = { campaignId, totalIn, totalOut, balance: totalIn - totalOut, expenses };
+  cacheSet(cacheKey, summary);
   return json(summary);
 }

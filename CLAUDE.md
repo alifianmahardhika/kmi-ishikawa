@@ -45,6 +45,20 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   sebelum terhitung publik, captcha di sini hanya penyaring spam ringan (bukan gerbang
   keamanan), jadi tidak perlu token bertanda tangan server seperti sebelumnya. Jangan
   tambahkan lagi endpoint `/api/captcha` kecuali diminta ulang.
+- **Cache in-memory** (`netlify/lib/cache.ts`) di `/api/stats`, `/api/laporan`,
+  `/api/kegiatan` — pola yang sama seperti `kanazawa-masjid/netlify/functions/register.mjs`
+  (variabel JS module-scope, BUKAN Redis beneran, tidak ada layanan tambahan). TTL 6 jam
+  (`DEFAULT_TTL_MS`, sama seperti `SESSION_CACHE_TTL` di referensi) sebagai jaring
+  pengaman, tapi mekanisme utamanya invalidate-on-write: setiap aksi tulis admin yang
+  relevan (`admin.mts`: verifikasi/tolak donasi, CRUD kegiatan, CRUD pengeluaran, ubah
+  target campaign) memanggil `cacheDelete(cacheKeys.xxx(...))` sesudah query berhasil,
+  supaya admin/donatur tidak menunggu TTL untuk lihat perubahan. **Kalau nambah
+  field/query baru ke salah satu endpoint yang di-cache, atau nambah aksi tulis baru yang
+  mempengaruhi data itu, jangan lupa update cache key & invalidation-nya juga** — cache
+  yang tidak di-invalidate akan menyajikan data basi sampai 6 jam. Keterbatasan yang
+  diwarisi dari pola aslinya: cache ini per-instance function, tidak dibagi antar instance
+  Netlify yang berjalan bersamaan (module scope per proses) — cukup untuk situs komunitas
+  trafik rendah ini, bukan untuk consistency yang ketat.
 - **JANGAN hapus/reset `local.db`** untuk keperluan testing (`rm -f local.db*` dkk.) —
   pemilik proyek isi data uji coba sendiri di situ dan migrasi ulang manual kapan perlu
   (`bun run migrate`). Kalau butuh DB kosong untuk verifikasi suatu fitur, jangan sentuh

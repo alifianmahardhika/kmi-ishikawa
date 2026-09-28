@@ -9,6 +9,7 @@ import {
   unauthorized,
 } from "../lib/respond";
 import { optionalString, requireBoolean, requireInt, requireString } from "../lib/validate";
+import { cacheDelete, cacheKeys } from "../lib/cache";
 import type { Campaign, Donation, DonationStatus } from "../../src/types/donation";
 import type { EventItem } from "../../src/types/event";
 import type { Expense } from "../../src/types/expense";
@@ -105,7 +106,7 @@ async function handleDonasi(req: Request, id?: string): Promise<Response> {
 
   const result = await db.execute({
     sql: `UPDATE donations SET status = ?, verified_at = ?, verified_by = ?, admin_note = ?
-          WHERE id = ?`,
+          WHERE id = ? RETURNING campaign_id`,
     args: [
       status,
       status === "verified" ? new Date().toISOString() : null,
@@ -114,7 +115,13 @@ async function handleDonasi(req: Request, id?: string): Promise<Response> {
       Number(id),
     ],
   });
-  if (result.rowsAffected === 0) return notFound("donation_not_found");
+  if (result.rows.length === 0) return notFound("donation_not_found");
+  // Verifying/rejecting a donation changes both the progress bar (stats) and the
+  // financial report (laporan) — invalidate both so admins/donors see it immediately
+  // instead of waiting out the cache TTL.
+  const campaignId = String(result.rows[0]?.campaign_id);
+  cacheDelete(cacheKeys.stats(campaignId));
+  cacheDelete(cacheKeys.laporan(campaignId));
   return json({ ok: true });
 }
 
@@ -168,6 +175,7 @@ async function handleKegiatan(req: Request, id?: string): Promise<Response> {
             new Date().toISOString(),
           ],
         });
+        cacheDelete(cacheKeys.kegiatanList());
         return json({ ok: true });
       } catch (err) {
         return badRequest(err instanceof Error ? err.message : "invalid_input");
@@ -194,6 +202,7 @@ async function handleKegiatan(req: Request, id?: string): Promise<Response> {
         args: [slug, title, startsAt, location, summary, eventBody, image, isPublished ? 1 : 0, Number(id)],
       });
       if (result.rowsAffected === 0) return notFound("event_not_found");
+      cacheDelete(cacheKeys.kegiatanList());
       return json({ ok: true });
     } catch (err) {
       return badRequest(err instanceof Error ? err.message : "invalid_input");
@@ -203,6 +212,7 @@ async function handleKegiatan(req: Request, id?: string): Promise<Response> {
   if (req.method === "DELETE") {
     const result = await db.execute({ sql: "DELETE FROM events WHERE id = ?", args: [Number(id)] });
     if (result.rowsAffected === 0) return notFound("event_not_found");
+    cacheDelete(cacheKeys.kegiatanList());
     return json({ ok: true });
   }
 
@@ -252,6 +262,7 @@ async function handleLaporan(req: Request, id?: string): Promise<Response> {
                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
           args: [campaignId, title, category, amount, spentOn, note, new Date().toISOString()],
         });
+        cacheDelete(cacheKeys.laporan(campaignId));
         return json({ ok: true });
       } catch (err) {
         return badRequest(err instanceof Error ? err.message : "invalid_input");
@@ -261,8 +272,12 @@ async function handleLaporan(req: Request, id?: string): Promise<Response> {
   }
 
   if (req.method === "DELETE") {
-    const result = await db.execute({ sql: "DELETE FROM expenses WHERE id = ?", args: [Number(id)] });
-    if (result.rowsAffected === 0) return notFound("expense_not_found");
+    const result = await db.execute({
+      sql: "DELETE FROM expenses WHERE id = ? RETURNING campaign_id",
+      args: [Number(id)],
+    });
+    if (result.rows.length === 0) return notFound("expense_not_found");
+    cacheDelete(cacheKeys.laporan(String(result.rows[0]?.campaign_id)));
     return json({ ok: true });
   }
 
@@ -318,6 +333,7 @@ async function handleCampaign(req: Request): Promise<Response> {
         args,
       });
       if (result.rowsAffected === 0) return notFound("campaign_not_found");
+      cacheDelete(cacheKeys.stats(campaignId));
       return json({ ok: true });
     } catch (err) {
       return badRequest(err instanceof Error ? err.message : "invalid_input");

@@ -1,5 +1,6 @@
 import { getDb } from "../lib/db";
 import { currentMonthRange } from "../lib/month";
+import { cacheGet, cacheSet, cacheKeys } from "../lib/cache";
 import { badRequest, json, methodNotAllowed } from "../lib/respond";
 import type { DonationStats, PublicDonor } from "../../src/types/donation";
 
@@ -9,6 +10,10 @@ export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const campaignId = url.searchParams.get("campaign");
   if (!campaignId) return badRequest("campaign_required");
+
+  const cacheKey = cacheKeys.stats(campaignId);
+  const cached = cacheGet<DonationStats>(cacheKey);
+  if (cached) return json(cached);
 
   const db = getDb();
   const { month, start, end } = currentMonthRange();
@@ -57,5 +62,6 @@ export default async function handler(req: Request): Promise<Response> {
     recentDonors,
     allTimeCollected,
   };
+  cacheSet(cacheKey, stats);
   return json(stats);
 }
