@@ -41,17 +41,23 @@ export default function DonasiAdmin() {
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex justify-between items-center mb-4">
           <h1 className="section-title !mb-0">Donasi</h1>
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as DonationStatus | "all")}
-            className="rounded-lg border px-3 py-1.5 text-sm"
-            style={{ borderColor: "var(--surface-border)", background: "var(--bg)" }}
-          >
-            <option value="pending">Menunggu</option>
-            <option value="verified">Terverifikasi</option>
-            <option value="rejected">Ditolak</option>
-            <option value="all">Semua</option>
-          </select>
+          <div>
+            <label htmlFor="statusFilter" className="block text-xs text-muted mb-1">
+              Filter status
+            </label>
+            <select
+              id="statusFilter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as DonationStatus | "all")}
+              className="rounded-lg border px-3 py-1.5 text-sm"
+              style={{ borderColor: "var(--surface-border)", background: "var(--bg)" }}
+            >
+              <option value="pending">Menunggu</option>
+              <option value="verified">Terverifikasi</option>
+              <option value="rejected">Ditolak</option>
+              <option value="all">Semua</option>
+            </select>
+          </div>
         </div>
 
         <div className="space-y-3">

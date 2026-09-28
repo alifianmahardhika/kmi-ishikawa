@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AdminNav } from "../../components/admin/AdminNav";
+import { Field } from "../../components/admin/Field";
 import { api } from "../../lib/api";
 import type { Expense, ExpenseCreateInput } from "../../types/expense";
 import { formatYen, formatDateId } from "../../lib/format";
@@ -53,11 +54,21 @@ export default function LaporanAdmin() {
       <div className="max-w-5xl mx-auto px-4 grid lg:grid-cols-2 gap-8">
         <form onSubmit={handleSubmit} className="card space-y-3">
           <h2 className="font-semibold text-(--text)">Pengeluaran Baru</h2>
-          <input required placeholder="Keterangan" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} style={inputStyle} />
-          <input placeholder="Kategori" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputClass} style={inputStyle} />
-          <input required type="number" min={0} placeholder="Jumlah (¥)" value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} className={inputClass} style={inputStyle} />
-          <input required type="date" value={form.spentOn} onChange={(e) => setForm({ ...form, spentOn: e.target.value })} className={inputClass} style={inputStyle} />
-          <textarea placeholder="Catatan (opsional)" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className={inputClass} style={inputStyle} />
+          <Field label="Keterangan" htmlFor="exp-title">
+            <input id="exp-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Kategori" htmlFor="exp-category">
+            <input id="exp-category" placeholder="mis. operasional, sewa" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Jumlah (¥)" htmlFor="exp-amount">
+            <input id="exp-amount" required type="number" min={0} value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Tanggal" htmlFor="exp-spentOn">
+            <input id="exp-spentOn" required type="date" value={form.spentOn} onChange={(e) => setForm({ ...form, spentOn: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Catatan (opsional)" htmlFor="exp-note">
+            <textarea id="exp-note" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
           <button type="submit" disabled={saving} className="btn-primary !py-1.5 text-sm">
             Tambah
           </button>

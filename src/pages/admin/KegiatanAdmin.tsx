@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AdminNav } from "../../components/admin/AdminNav";
+import { Field } from "../../components/admin/Field";
 import { api } from "../../lib/api";
 import type { EventCreateInput, EventItem } from "../../types/event";
 import { formatDateTimeId } from "../../lib/format";
@@ -79,16 +80,30 @@ export default function KegiatanAdmin() {
       <div className="max-w-5xl mx-auto px-4 grid lg:grid-cols-2 gap-8">
         <form onSubmit={handleSubmit} className="card space-y-3">
           <h2 className="font-semibold text-(--text)">{editingId ? "Edit Kegiatan" : "Kegiatan Baru"}</h2>
-          <input required placeholder="Judul" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} style={inputStyle} />
-          <input required placeholder="slug-kegiatan" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className={inputClass} style={inputStyle} />
-          <input required type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} className={inputClass} style={inputStyle} />
-          <input placeholder="Lokasi" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} style={inputStyle} />
-          <input placeholder="Ringkasan singkat" value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} className={inputClass} style={inputStyle} />
-          <textarea placeholder="Isi (markdown)" rows={6} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} className={inputClass} style={inputStyle} />
-          <input placeholder="URL gambar (opsional)" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={inputClass} style={inputStyle} />
+          <Field label="Judul" htmlFor="ev-title">
+            <input id="ev-title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Slug (untuk URL, contoh: kajian-perdana)" htmlFor="ev-slug">
+            <input id="ev-slug" required placeholder="kajian-perdana" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Waktu mulai" htmlFor="ev-startsAt">
+            <input id="ev-startsAt" required type="datetime-local" value={form.startsAt} onChange={(e) => setForm({ ...form, startsAt: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Lokasi" htmlFor="ev-location">
+            <input id="ev-location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Ringkasan singkat" htmlFor="ev-summary">
+            <input id="ev-summary" value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="Isi lengkap (markdown)" htmlFor="ev-body">
+            <textarea id="ev-body" rows={6} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
+          <Field label="URL gambar (opsional)" htmlFor="ev-image">
+            <input id="ev-image" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={inputClass} style={inputStyle} />
+          </Field>
           <label className="flex items-center gap-2 text-sm text-muted">
             <input type="checkbox" checked={form.isPublished} onChange={(e) => setForm({ ...form, isPublished: e.target.checked })} />
-            Terbitkan
+            Terbitkan (tampil di halaman publik)
           </label>
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="btn-primary !py-1.5 text-sm">
