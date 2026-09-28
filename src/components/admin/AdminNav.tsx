@@ -18,22 +18,22 @@ export function AdminNav() {
 
   return (
     <div className="border-b mb-8" style={{ borderColor: "var(--surface-border)" }}>
-      <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-        <nav className="flex gap-4">
+      <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center gap-4">
+        <nav className="flex gap-4 overflow-x-auto">
           {LINKS.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `text-sm font-medium ${isActive ? "text-(--primary)" : "text-(--text-muted) hover:text-(--text)"}`
+                `text-sm font-medium shrink-0 ${isActive ? "text-(--primary)" : "text-(--text-muted) hover:text-(--text)"}`
               }
             >
               {link.label}
             </NavLink>
           ))}
         </nav>
-        <button type="button" onClick={logout} className="text-sm text-muted hover:text-(--text)">
+        <button type="button" onClick={logout} className="text-sm text-muted hover:text-(--text) shrink-0">
           Keluar
         </button>
       </div>
