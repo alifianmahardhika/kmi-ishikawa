@@ -141,26 +141,50 @@ export default function SilaturahmiFC() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
-      <header className="mb-8">
-        <p className="text-xs font-semibold tracking-widest text-(--primary) mb-2">{content.eyebrow}</p>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-(--text)">
-              {tab === "riwayat" ? content.historyTitle : tab === "saya" ? "Pendaftaran saya" : content.title}
-            </h1>
-            <p className="text-muted mt-2">
-              {tab === "riwayat"
-                ? content.historySubtitle
-                : tab === "saya"
-                  ? "Status tersimpan di browser ini. Pindah HP atau browser? Masuk dengan kode member di bawah."
-                  : content.subtitle}
-            </p>
+      {/* Foto tim di atas langit malam yang gelap; orangnya ada di bagian bawah foto, jadi teks
+          diletakkan di atas (objectPosition 80% menjaga wajah tetap terlihat saat dipotong). */}
+      <header className="relative overflow-hidden rounded-2xl mb-8 min-h-[420px] sm:min-h-[440px] text-white">
+        <img
+          src="/images/silaturahmi-fc-hero.webp"
+          alt="Foto kebersamaan tim Silaturahmi FC"
+          width={1536}
+          height={1152}
+          fetchPriority="high"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: "center 80%" }}
+        />
+        <div aria-hidden="true" className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(4,17,40,0.75), rgba(4,17,40,0.15) 65%)" }} />
+        <div className="relative p-6 sm:p-10 flex items-start gap-4 sm:gap-6">
+          <img
+            src="/images/silaturahmi-fc-logo.webp"
+            alt="Logo Silaturahmi FC"
+            width={313}
+            height={360}
+            className="h-16 sm:h-28 w-auto shrink-0"
+            style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.55))" }}
+          />
+          <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold tracking-widest text-white/80 mb-2">{content.eyebrow}</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="max-w-xl">
+              <h1 className="text-2xl sm:text-4xl font-bold">
+                {tab === "riwayat" ? content.historyTitle : tab === "saya" ? "Pendaftaran saya" : content.title}
+              </h1>
+              <p className="text-sm sm:text-base text-white/85 mt-2">
+                {tab === "riwayat"
+                  ? content.historySubtitle
+                  : tab === "saya"
+                    ? "Status tersimpan di browser ini. Pindah HP atau browser? Masuk dengan kode member di bawah."
+                    : content.subtitle}
+              </p>
+            </div>
+            {content.season && (
+              <span className="text-xs font-semibold tracking-wider text-white/80">
+                SEASON <b className="text-white">{content.season}</b>
+              </span>
+            )}
           </div>
-          {content.season && (
-            <span className="text-xs font-semibold tracking-wider text-muted">
-              SEASON <b className="text-(--text)">{content.season}</b>
-            </span>
-          )}
+          </div>
         </div>
       </header>
 
@@ -305,7 +329,7 @@ export default function SilaturahmiFC() {
         </section>
       )}
 
-      <p className="text-center text-xs text-muted mt-12">{content.footer}</p>
+      {content.footer && <p className="text-center text-xs text-muted mt-12">{content.footer}</p>}
 
       {dialog?.kind === "about" && (
         <Modal title={content.aboutTitle} subtitle={content.aboutSubtitle} onClose={() => setDialog(null)}>

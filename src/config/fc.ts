@@ -27,5 +27,5 @@ Have fun football !!!`,
   historySubtitle: "Dokumentasi kegiatan yang telah berlangsung.",
   linksTitle: "Dokumentasi & tautan",
   links: [],
-  footer: "Kanazawa, Japan · Est. together.",
+  footer: "", // kosong = baris footer tidak ditampilkan; bisa diisi dari /admin/fc → Teks halaman
 };
