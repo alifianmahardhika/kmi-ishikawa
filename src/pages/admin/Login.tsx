@@ -18,9 +18,13 @@ export default function Login() {
       await api.post("/api/admin/login", { password });
       navigate("/admin");
     } catch (err) {
-      setError(err instanceof ApiRequestError && err.code === "unauthorized"
-        ? "Password salah."
-        : "Gagal masuk. Coba lagi.");
+      setError(
+        err instanceof ApiRequestError && err.code === "unauthorized"
+          ? "Password salah."
+          : err instanceof ApiRequestError && err.status === 429
+            ? "Terlalu banyak percobaan gagal. Coba lagi dalam 15 menit."
+            : "Gagal masuk. Coba lagi.",
+      );
     } finally {
       setSubmitting(false);
     }

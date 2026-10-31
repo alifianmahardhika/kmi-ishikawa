@@ -1,7 +1,9 @@
 import { getDb } from "../lib/db";
 import { cacheGet, cacheSet, cacheKeys } from "../lib/cache";
 import { parsePageParams, paginatedResponse } from "../lib/pagination";
-import { badRequest, json, methodNotAllowed } from "../lib/respond";
+import { badRequest, json, methodNotAllowed, tooManyRequests } from "../lib/respond";
+import { getClientIp, memoryRateLimited, PUBLIC_DB_READS_PER_MINUTE } from "../lib/ratelimit";
+import type { FunctionContext } from "../lib/types";
 import type { Expense, LaporanSummary } from "../../src/types/expense";
 
 function toExpense(row: Record<string, unknown>): Expense {
@@ -17,7 +19,7 @@ function toExpense(row: Record<string, unknown>): Expense {
   };
 }
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: Request, context: FunctionContext = {}): Promise<Response> {
   if (req.method !== "GET") return methodNotAllowed();
 
   const url = new URL(req.url);
@@ -37,6 +39,12 @@ export default async function handler(req: Request): Promise<Response> {
   if (cacheable) {
     const cached = cacheGet<LaporanSummary>(cacheKey);
     if (cached) return json(cached);
+  }
+
+  // Hanya jalur yang benar-benar ke DB (cache miss / parameter) yang dibatasi — request
+  // yang kena cache tidak menyentuh limiter sama sekali.
+  if (memoryRateLimited(`laporan:${getClientIp(req, context)}`, PUBLIC_DB_READS_PER_MINUTE, 60_000)) {
+    return tooManyRequests();
   }
 
   const db = getDb();

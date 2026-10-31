@@ -30,3 +30,42 @@ export async function isRateLimited(
   const count = Number(result.rows[0]?.count ?? 0);
   return count >= opts.maxPerWindow;
 }
+
+// --- Limiter di memori -------------------------------------------------------
+// Untuk endpoint BACA publik dan aksi ringan: tanpa query DB sama sekali (limiter
+// berbasis tabel justru menambah beban Turso). Sama seperti netlify/lib/cache.ts, ini
+// per instance function — penyerang yang mendarat di instance lain dapat jatah baru.
+// Cukup untuk meredam beban dan spam sembarangan; BUKAN pagar ketat. Untuk yang butuh
+// ketat (login admin, PIN) pakai tabel — lihat admin.mts handleLogin / fc.mts handleCari.
+interface Window {
+  times: number[];
+  windowMs: number;
+}
+const windows = new Map<string, Window>();
+const MAX_TRACKED_KEYS = 5000;
+
+/** Jatah baca-DB publik per IP per menit (hanya jalur cache-miss/berparameter). */
+export const PUBLIC_DB_READS_PER_MINUTE = 30;
+
+/** true = permintaan ini melewati batas (dan TIDAK dihitung lagi). Tiap pemanggilan
+ * yang lolos dihitung, jadi cocok sebagai pembatas laju request biasa. */
+export function memoryRateLimited(key: string, maxPerWindow: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = windows.get(key) ?? { times: [], windowMs };
+  entry.times = entry.times.filter((t) => now - t < windowMs);
+  if (entry.times.length >= maxPerWindow) {
+    windows.set(key, entry);
+    return true;
+  }
+  entry.times.push(now);
+  windows.set(key, entry);
+
+  if (windows.size > MAX_TRACKED_KEYS) {
+    for (const [k, w] of windows) {
+      if (now - (w.times[w.times.length - 1] ?? 0) >= w.windowMs) windows.delete(k);
+    }
+    // Masih penuh (banyak IP aktif sekaligus): buang semuanya daripada memori tumbuh terus.
+    if (windows.size > MAX_TRACKED_KEYS) windows.clear();
+  }
+  return false;
+}

@@ -155,6 +155,38 @@ const MIGRATIONS: Migration[] = [
       },
     ],
   },
+  {
+    version: 6,
+    name: "admin_login_attempts (batas percobaan login admin per IP)",
+    sql: [
+      `CREATE TABLE IF NOT EXISTS admin_login_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_ip ON admin_login_attempts(ip_hash, created_at)`,
+    ],
+  },
+  {
+    version: 7,
+    name: "Silaturahmi FC: member (kode permanen, cari langsung lewat kode)",
+    sql: [
+      // code_lookup = HMAC-SHA256(kode, FC_CODE_SECRET), hex. UNIQUE -> pencarian lewat kode O(1).
+      // Satu member = satu orang dengan satu kode permanen; phone sengaja TIDAK unik supaya
+      // pemilik nomor yang kehilangan kode (atau nomornya dipakai orang iseng) tidak terkunci.
+      `CREATE TABLE IF NOT EXISTS fc_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        code_lookup TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL
+      )`,
+      // Kolom pin_hash/pin_fails/pin_locked_until dari v5 tidak dipakai lagi (tidak bisa di-DROP
+      // dengan aman di SQLite lama); biarkan saja.
+      `ALTER TABLE fc_bookings ADD COLUMN member_id INTEGER REFERENCES fc_members(id)`,
+      `CREATE INDEX IF NOT EXISTS idx_fc_bookings_member ON fc_bookings(member_id)`,
+    ],
+  },
   // Tambahkan migrasi baru di sini — jangan pernah mengedit/menghapus entri yang sudah ada.
   //
   // Contoh:

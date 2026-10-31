@@ -6,6 +6,7 @@ import {
   methodNotAllowed,
   notFound,
   serverError,
+  tooManyRequests,
   unauthorized,
 } from "../lib/respond";
 import { optionalString, requireBoolean, requireInt, requireString } from "../lib/validate";
@@ -17,12 +18,14 @@ import type { Expense } from "../../src/types/expense";
 import type { RekeningInfo, WhatsappTreasurer } from "../../src/types/settings";
 import { DEFAULT_CAMPAIGN_ID } from "../../src/config/campaign";
 import { readSettings } from "../lib/settings";
+import { getClientIp, hashIp } from "../lib/ratelimit";
+import type { FunctionContext } from "../lib/types";
 
 // Every /api/admin/* request lands here (Netlify routes any path under
 // /.netlify/functions/admin/* to this one function) — we parse the remainder of the
 // path ourselves rather than splitting admin concerns into several functions, since
 // Netlify's redirect rule can't express nested dynamic segments on its own.
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: Request, context: FunctionContext = {}): Promise<Response> {
   const url = new URL(req.url);
   const segments = url.pathname.split("/").filter(Boolean);
   const adminIndex = segments.indexOf("admin");
@@ -30,7 +33,7 @@ export default async function handler(req: Request): Promise<Response> {
   const [resource, id] = rest;
 
   try {
-    if (resource === "login") return await handleLogin(req);
+    if (resource === "login") return await handleLogin(req, context);
     if (resource === "logout") return handleLogout(req);
     if (resource === "me") return handleMe(req);
 
@@ -49,13 +52,39 @@ export default async function handler(req: Request): Promise<Response> {
   }
 }
 
-async function handleLogin(req: Request): Promise<Response> {
+// Brute-force guard: `admin_login_attempts` menyimpan percobaan GAGAL per IP (di tabel, bukan
+// memori, supaya tetap berlaku lintas instance — ini satu-satunya pintu masuk admin).
+// 5 gagal dalam 15 menit -> 429 sampai jendela lewat; login sukses menghapus catatan IP itu.
+// Sengaja tidak ada batas global lintas-IP: itu akan membiarkan siapa pun mengunci admin
+// dari luar cukup dengan mengirim banyak tebakan.
+const MAX_LOGIN_FAILS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+
+async function handleLogin(req: Request, context: FunctionContext): Promise<Response> {
   if (req.method !== "POST") return methodNotAllowed();
+  const db = getDb();
+  const ipHash = hashIp(getClientIp(req, context));
+  const since = new Date(Date.now() - LOGIN_WINDOW_MS).toISOString();
+
+  const recent = await db.execute({
+    sql: "SELECT COUNT(*) AS n FROM admin_login_attempts WHERE ip_hash = ? AND created_at > ?",
+    args: [ipHash, since],
+  });
+  if (Number(recent.rows[0]?.n ?? 0) >= MAX_LOGIN_FAILS) return tooManyRequests();
+
   const body = await req.json().catch(() => ({}));
   const password = typeof body.password === "string" ? body.password : "";
-  if (!password || !(await verifyPassword(password))) return unauthorized();
+  if (!password || !(await verifyPassword(password))) {
+    await db.batch([
+      { sql: "DELETE FROM admin_login_attempts WHERE created_at < ?", args: [since] },
+      { sql: "INSERT INTO admin_login_attempts (ip_hash, created_at) VALUES (?, ?)", args: [ipHash, new Date().toISOString()] },
+    ]);
+    return unauthorized();
+  }
+  await db.execute({ sql: "DELETE FROM admin_login_attempts WHERE ip_hash = ?", args: [ipHash] });
   return json({ ok: true }, { headers: { "set-cookie": createSessionCookie() } });
 }
+
 
 function handleLogout(req: Request): Response {
   if (req.method !== "POST") return methodNotAllowed();

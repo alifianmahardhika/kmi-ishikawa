@@ -1,10 +1,12 @@
 import { getDb } from "../lib/db";
 import { currentMonthRange } from "../lib/month";
 import { cacheGet, cacheSet, cacheKeys } from "../lib/cache";
-import { badRequest, json, methodNotAllowed } from "../lib/respond";
+import { badRequest, json, methodNotAllowed, tooManyRequests } from "../lib/respond";
+import { getClientIp, memoryRateLimited, PUBLIC_DB_READS_PER_MINUTE } from "../lib/ratelimit";
+import type { FunctionContext } from "../lib/types";
 import type { DonationStats, PublicDonor } from "../../src/types/donation";
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: Request, context: FunctionContext = {}): Promise<Response> {
   if (req.method !== "GET") return methodNotAllowed();
 
   const url = new URL(req.url);
@@ -14,6 +16,12 @@ export default async function handler(req: Request): Promise<Response> {
   const cacheKey = cacheKeys.stats(campaignId);
   const cached = cacheGet<DonationStats>(cacheKey);
   if (cached) return json(cached);
+
+  // Hanya jalur yang benar-benar ke DB (cache miss / parameter) yang dibatasi — request
+  // yang kena cache tidak menyentuh limiter sama sekali.
+  if (memoryRateLimited(`stats:${getClientIp(req, context)}`, PUBLIC_DB_READS_PER_MINUTE, 60_000)) {
+    return tooManyRequests();
+  }
 
   const db = getDb();
   const { month, start, end } = currentMonthRange();

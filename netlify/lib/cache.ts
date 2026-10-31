@@ -31,7 +31,15 @@ export function cacheGet<T>(key: string): T | undefined {
   return entry.value as T;
 }
 
+const MAX_ENTRIES = 500;
+
 export function cacheSet<T>(key: string, value: T, ttlMs: number = DEFAULT_TTL_MS): void {
+  // Kunci cache sebagian berasal dari input pengunjung (campaign id, dll). Tanpa batas,
+  // permintaan dengan nilai acak membuat memori function tumbuh tanpa akhir.
+  if (store.size >= MAX_ENTRIES && !store.has(key)) {
+    const oldest = store.keys().next().value;
+    if (oldest !== undefined) store.delete(oldest);
+  }
   store.set(key, { value, expiresAt: Date.now() + ttlMs });
 }
 

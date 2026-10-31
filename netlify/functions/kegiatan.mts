@@ -1,7 +1,9 @@
 import { getDb } from "../lib/db";
 import { cacheGet, cacheSet, cacheKeys } from "../lib/cache";
 import { endOfDayIfDateOnly, parsePageParams, paginatedResponse } from "../lib/pagination";
-import { json, methodNotAllowed, notFound } from "../lib/respond";
+import { json, methodNotAllowed, notFound, tooManyRequests } from "../lib/respond";
+import { getClientIp, memoryRateLimited, PUBLIC_DB_READS_PER_MINUTE } from "../lib/ratelimit";
+import type { FunctionContext } from "../lib/types";
 import type { EventItem } from "../../src/types/event";
 import type { Paginated } from "../../src/types/api";
 
@@ -23,16 +25,20 @@ function toEventItem(row: Record<string, unknown>): EventItem {
 // Handles both /api/kegiatan (list) and /api/kegiatan/:slug (detail) — Netlify routes
 // any /.netlify/functions/kegiatan/* request to this same function, with the rest of
 // the path preserved on req.url.
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: Request, context: FunctionContext = {}): Promise<Response> {
   if (req.method !== "GET") return methodNotAllowed();
 
   const url = new URL(req.url);
   const segments = url.pathname.split("/").filter(Boolean);
   const slug = segments[segments.length - 1] === "kegiatan" ? null : segments[segments.length - 1];
 
-  const db = getDb();
-
   if (slug) {
+  // Hanya jalur yang benar-benar ke DB (cache miss / parameter) yang dibatasi — request
+  // yang kena cache tidak menyentuh limiter sama sekali.
+  if (memoryRateLimited(`kegiatan:${getClientIp(req, context)}`, PUBLIC_DB_READS_PER_MINUTE, 60_000)) {
+    return tooManyRequests();
+  }
+    const db = getDb();
     const result = await db.execute({
       sql: "SELECT * FROM events WHERE slug = ? AND is_published = 1",
       args: [slug],
@@ -56,7 +62,13 @@ export default async function handler(req: Request): Promise<Response> {
     const cached = cacheGet<Paginated<EventItem>>(cacheKey);
     if (cached) return json(cached);
   }
+  // Hanya jalur yang benar-benar ke DB (cache miss / parameter) yang dibatasi — request
+  // yang kena cache tidak menyentuh limiter sama sekali.
+  if (memoryRateLimited(`kegiatan:${getClientIp(req, context)}`, PUBLIC_DB_READS_PER_MINUTE, 60_000)) {
+    return tooManyRequests();
+  }
 
+  const db = getDb();
   const conditions = ["is_published = 1"];
   const args: (string | number)[] = [];
   if (from) {

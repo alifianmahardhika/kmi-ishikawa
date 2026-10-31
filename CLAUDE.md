@@ -91,6 +91,16 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   `local.db` yang ada — pakai `:memory:` (`file::memory:`), file sementara di scratchpad,
   atau panggil handler function langsung dengan client libSQL sendiri yang dibuat di situ.
 
+- **Rate limiting** — dua jenis, jangan dicampur: (1) berbasis TABEL (ketat, lintas instance,
+  1 query Turso per cek): donasi (`donations.ip_hash`), `fc_bookings` (daftar), `fc_pin_attempts`
+  (cari PIN), `admin_login_attempts` (login admin: 5 gagal/15 mnt per IP; sengaja TANPA batas
+  global supaya admin tidak bisa dikunci dari luar). (2) di MEMORI (`memoryRateLimited` di
+  `netlify/lib/ratelimit.ts`, per instance, tanpa query DB): jalur cache-miss/berparameter di
+  `/api/stats|laporan|kegiatan` (30/menit/IP) dan `/api/fc/saya|batal`. Limiter memori JANGAN
+  dipasang sebelum cek cache — request yang kena cache harus tetap bebas. Endpoint publik baru
+  yang menyentuh DB harus pilih salah satu jenis ini. `cacheSet` dibatasi 500 entri karena
+  sebagian kunci berasal dari input pengunjung.
+
 ## Perintah
 
 ```bash
