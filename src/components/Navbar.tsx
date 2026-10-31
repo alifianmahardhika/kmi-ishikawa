@@ -6,6 +6,7 @@ const LINKS = [
   { to: "/", label: "Beranda" },
   { to: "/donasi", label: "Donasi" },
   { to: "/kegiatan", label: "Kegiatan" },
+  { to: "/silaturahmi-fc", label: "Silaturahmi FC" },
   { to: "/laporan", label: "Laporan" },
   { to: "/kontak", label: "Kontak" },
 ];

@@ -156,6 +156,65 @@ const MIGRATIONS: Migration[] = [
     ],
   },
   {
+    version: 4,
+    name: "Silaturahmi FC (jadwal, pendaftaran, teks halaman)",
+    sql: [
+      `CREATE TABLE IF NOT EXISTS fc_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL DEFAULT '',
+        venue TEXT NOT NULL,
+        map_url TEXT NOT NULL DEFAULT '',
+        gk_quota INTEGER NOT NULL DEFAULT 0,
+        player_quota INTEGER NOT NULL DEFAULT 0,
+        fee INTEGER NOT NULL DEFAULT 0,
+        gk_fee INTEGER NOT NULL DEFAULT 0,
+        notes TEXT NOT NULL DEFAULT '',
+        drive_url TEXT NOT NULL DEFAULT '',
+        youtube_url TEXT NOT NULL DEFAULT '',
+        is_closed INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_fc_events_date ON fc_events(date)`,
+      `CREATE TABLE IF NOT EXISTS fc_bookings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER NOT NULL REFERENCES fc_events(id) ON DELETE CASCADE,
+        token TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        position TEXT NOT NULL DEFAULT 'PLAYER',
+        is_paid INTEGER NOT NULL DEFAULT 0,
+        approved_at TEXT,
+        created_at TEXT NOT NULL,
+        ip_hash TEXT NOT NULL DEFAULT '',
+        UNIQUE (event_id, phone)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_fc_bookings_event ON fc_bookings(event_id, position, approved_at)`,
+      `CREATE TABLE IF NOT EXISTS fc_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+    ],
+  },
+  {
+    version: 5,
+    name: "Silaturahmi FC: PIN pendaftar untuk cari/batal dari perangkat lain",
+    sql: [
+      // pin_hash kosong = pendaftaran lama (sebelum ada PIN) -> tidak bisa dicari lewat PIN.
+      `ALTER TABLE fc_bookings ADD COLUMN pin_hash TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE fc_bookings ADD COLUMN pin_fails INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE fc_bookings ADD COLUMN pin_locked_until TEXT`,
+      `CREATE TABLE IF NOT EXISTS fc_pin_attempts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_fc_pin_attempts_ip ON fc_pin_attempts(ip_hash, created_at)`,
+    ],
+  },
+  {
     version: 6,
     name: "admin_login_attempts (batas percobaan login admin per IP)",
     sql: [

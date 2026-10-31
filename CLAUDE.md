@@ -91,6 +91,18 @@ Lihat `README.md` untuk gambaran umum. Beberapa hal yang perlu diingat saat meng
   `local.db` yang ada — pakai `:memory:` (`file::memory:`), file sementara di scratchpad,
   atau panggil handler function langsung dengan client libSQL sendiri yang dibuat di situ.
 
+- **Silaturahmi FC** (`/silaturahmi-fc`, admin `/admin/fc`) punya tabel sendiri
+  (`fc_events`, `fc_bookings`, `fc_settings`, migrasi v4) — terpisah dari `events` (kegiatan
+  KMII) dan `settings`. Public: `netlify/functions/fc.mts` (`GET /api/fc` di-cache lewat
+  `cacheKeys.fcPublic`, tanpa query param; `POST /api/fc/daftar|saya|batal`). Admin:
+  `netlify/lib/fc-admin.ts`, dipanggil dari `admin.mts` (`/api/admin/fc/*`). Aturan yang
+  sengaja: (1) nomor HP peserta TIDAK PERNAH keluar dari endpoint publik — publik cuma dapat
+  hitungan slot; (2) pendaftar tanpa akun, "Pendaftaran saya" memakai token rahasia di
+  localStorage, plus KODE MEMBER `SFC-XXXX-XXXX` (8 karakter, permanen, satu per orang) yang dibuat SERVER (`crypto.randomInt`), ditampilkan sekali saat pertama daftar. Di DB (`fc_members.code_lookup`, UNIQUE) hanya tersimpan HMAC-SHA256 dengan `FC_CODE_SECRET` — JANGAN ganti secret itu setelah ada member (semua kode hangus). Kode dipakai untuk (a) daftar lagi tanpa isi data (`memberCode` di `POST /api/fc/daftar`; nama/nomor diambil server) dan (b) masuk dari perangkat lain (`POST /api/fc/cari`, kode saja, tanpa nomor HP). Browser hanya menyimpan nama + kode member + token, TIDAK menyimpan nomor HP, dan `/cari` tidak pernah mengembalikan nomor. Percobaan tebak dibatasi 10 gagal/jam/IP (`fc_pin_attempts`) — JANGAN dilepas, dan semua kegagalan harus tetap seragam `lookup_failed`. Kolom `pin_*` di `fc_bookings` adalah warisan v5, sudah tidak dipakai. Teks "Keamanan data Anda" di form daftar (`SilaturahmiFC.tsx`) harus tetap sesuai perilaku nyata — ubah teks DAN kode bersamaan; (3) status `confirmed`/`waiting` tidak disimpan, dihitung dari urutan
+  `approved_at` vs kuota per posisi (`netlify/lib/fc.ts`); (4) halaman publik memuat sekali
+  dan memisah jadwal/riwayat/bulan di klien (tanpa filter/paginasi server, sama alasannya
+  dengan Kegiatan/Laporan). Tiap aksi tulis admin FC wajib `cacheDelete(cacheKeys.fcPublic())`.
+
 - **Rate limiting** — dua jenis, jangan dicampur: (1) berbasis TABEL (ketat, lintas instance,
   1 query Turso per cek): donasi (`donations.ip_hash`), `fc_bookings` (daftar), `fc_pin_attempts`
   (cari PIN), `admin_login_attempts` (login admin: 5 gagal/15 mnt per IP; sengaja TANPA batas

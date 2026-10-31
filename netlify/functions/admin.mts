@@ -18,6 +18,7 @@ import type { Expense } from "../../src/types/expense";
 import type { RekeningInfo, WhatsappTreasurer } from "../../src/types/settings";
 import { DEFAULT_CAMPAIGN_ID } from "../../src/config/campaign";
 import { readSettings } from "../lib/settings";
+import { handleFcAdmin } from "../lib/fc-admin";
 import { getClientIp, hashIp } from "../lib/ratelimit";
 import type { FunctionContext } from "../lib/types";
 
@@ -45,6 +46,7 @@ export default async function handler(req: Request, context: FunctionContext = {
     if (resource === "laporan") return await handleLaporan(req, id);
     if (resource === "campaign") return await handleCampaign(req);
     if (resource === "settings") return await handleSettings(req);
+    if (resource === "fc") return await handleFcAdmin(req, rest.slice(1));
 
     return notFound();
   } catch (err) {
@@ -84,7 +86,6 @@ async function handleLogin(req: Request, context: FunctionContext): Promise<Resp
   await db.execute({ sql: "DELETE FROM admin_login_attempts WHERE ip_hash = ?", args: [ipHash] });
   return json({ ok: true }, { headers: { "set-cookie": createSessionCookie() } });
 }
-
 
 function handleLogout(req: Request): Response {
   if (req.method !== "POST") return methodNotAllowed();

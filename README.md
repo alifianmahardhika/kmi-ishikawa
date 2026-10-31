@@ -140,6 +140,7 @@ Catat `TURSO_DATABASE_URL` (dari `turso db show kmii-ishikawa --url`) dan
 bun scripts/hash-password.ts 'password-admin-produksi-anda'   # -> ADMIN_PASSWORD_HASH
 bun -e "console.log(crypto.randomUUID() + crypto.randomUUID())"  # -> SESSION_SECRET
 bun -e "console.log(crypto.randomUUID())"                        # -> IP_SALT
+bun -e "console.log(crypto.randomUUID() + crypto.randomUUID())"  # -> FC_CODE_SECRET (Silaturahmi FC)
 ```
 
 ### 4. Set environment variables di Netlify (Site settings → Environment variables)
@@ -151,6 +152,7 @@ bun -e "console.log(crypto.randomUUID())"                        # -> IP_SALT
 | `ADMIN_PASSWORD_HASH` | dari langkah 3 |
 | `SESSION_SECRET` | dari langkah 3 |
 | `IP_SALT` | dari langkah 3 |
+| `FC_CODE_SECRET` | dari langkah 3 — kunci kode member Silaturahmi FC. **Wajib sebelum fitur FC dipakai, dan jangan diganti setelahnya** (semua kode member yang sudah dibagikan jadi tidak berlaku) |
 | `RUN_MIGRATIONS` | `true` (**hanya untuk deploy pertama** — lihat bagian "Migrasi" di atas, unset lagi setelahnya) |
 
 **Jangan** set `APP_ENV` di produksi (biarkan kosong — itu yang membuat app baca dari

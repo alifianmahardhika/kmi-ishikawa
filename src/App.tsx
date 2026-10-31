@@ -14,6 +14,8 @@ import DonasiAdmin from "./pages/admin/DonasiAdmin";
 import KegiatanAdmin from "./pages/admin/KegiatanAdmin";
 import LaporanAdmin from "./pages/admin/LaporanAdmin";
 import Pengaturan from "./pages/admin/Pengaturan";
+import FcAdmin from "./pages/admin/FcAdmin";
+import SilaturahmiFC from "./pages/SilaturahmiFC";
 
 const router = createBrowserRouter([
   {
@@ -26,6 +28,7 @@ const router = createBrowserRouter([
       { path: "laporan", element: <Laporan /> },
       { path: "kegiatan", element: <Kegiatan /> },
       { path: "kegiatan/:slug", element: <KegiatanDetail /> },
+      { path: "silaturahmi-fc", element: <SilaturahmiFC /> },
       { path: "kontak", element: <Kontak /> },
     ],
   },
@@ -41,6 +44,7 @@ const router = createBrowserRouter([
       { path: "donasi", element: <DonasiAdmin /> },
       { path: "kegiatan", element: <KegiatanAdmin /> },
       { path: "laporan", element: <LaporanAdmin /> },
+      { path: "fc", element: <FcAdmin /> },
       { path: "pengaturan", element: <Pengaturan /> },
     ],
   },
